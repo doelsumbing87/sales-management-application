@@ -1,229 +1,319 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
+/* --- 1. Variabel CSS untuk Konsistensi & Kustomisasi Mudah --- */
 :root {
-    /* Variabel Warna */
-    --primary-color: #4a54e1; /* Biru yang lebih cerah, modern */
-    --primary-dark: #373fad;
-    --secondary-color: #f0f4f8; /* Latar belakang abu-abu terang */
-    --text-color: #333d47; /* Teks abu-abu gelap */
-    --light-text-color: #6c757d;
-    --white: #ffffff;
-    --border-color: #e0e5eb;
-    --shadow-light: rgba(0, 0, 0, 0.08);
-    --shadow-medium: rgba(0, 0, 0, 0.15);
-    --success-color: #28a745;
-    --danger-color: #dc3545;
-    --warning-color: #ffc107;
+    /* Palet Warna */
+    --primary-color: #007bff; /* Biru primer, cerah & menarik */
+    --primary-dark: #0056b3; /* Biru lebih gelap untuk hover/active */
+    --accent-color: #28a745; /* Hijau aksen (misal: success) */
+    --accent-dark: #218838;
+    --background-light: #f8f9fa; /* Latar belakang terang, bersih */
+    --card-background: #ffffff; /* Latar belakang card/konten */
+    --text-color: #343a40; /* Teks utama, abu-abu gelap */
+    --text-light: #6c757d; /* Teks sekunder/placeholder */
+    --border-color: #dee2e6; /* Warna border default */
+    --shadow-light: rgba(0, 0, 0, 0.05); /* Bayangan sangat ringan */
+    --shadow-medium: rgba(0, 0, 0, 0.1); /* Bayangan sedang */
+    --shadow-strong: rgba(0, 0, 0, 0.2); /* Bayangan kuat (misal: hover) */
+    --danger-color: #dc3545; /* Merah untuk error/delete */
+    --danger-light: rgba(220, 53, 69, 0.1); /* Latar belakang alert */
 
-    /* Spacing */
+    /* Spacing & Ukuran */
     --padding-sm: 0.75rem;
-    --padding-md: 1.5rem;
+    --padding-md: 1.25rem;
     --padding-lg: 2rem;
-    --margin-sm: 0.75rem;
-    --margin-md: 1.5rem;
+    --margin-sm: 0.5rem;
+    --margin-md: 1rem;
+    --margin-lg: 1.5rem;
+    --section-gap: 2rem; /* Jarak antar bagian dalam main */
 
     /* Border Radius */
-    --border-radius-sm: 5px;
-    --border-radius-md: 10px;
+    --border-radius-sm: 0.375rem; /* 6px */
+    --border-radius-md: 0.5rem; /* 8px */
+    --border-radius-lg: 0.75rem; /* 12px */
+
+    /* Transisi */
+    --transition-speed: 0.3s;
+    --transition-ease: ease-in-out;
+}
+
+/* --- 2. Reset & Global Styles --- */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 body {
-    margin: 0;
     font-family: 'Poppins', sans-serif;
-    background: var(--secondary-color);
+    background-color: var(--background-light);
     color: var(--text-color);
     line-height: 1.6;
     display: flex;
     flex-direction: column;
-    min-height: 100vh; /* Agar footer (jika ada) berada di bawah */
+    min-height: 100vh; /* Memastikan body mengisi seluruh viewport */
+    font-size: 16px; /* Base font size */
 }
 
+a {
+    text-decoration: none;
+    color: var(--primary-color);
+    transition: color var(--transition-speed) var(--transition-ease);
+}
+
+a:hover {
+    color: var(--primary-dark);
+}
+
+/* --- 3. Header & Navigasi --- */
 header {
-    background: var(--primary-color);
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     color: var(--white);
     padding: var(--padding-md) var(--padding-lg);
     text-align: center;
     font-weight: 700;
-    font-size: 2rem;
-    letter-spacing: 0.08em;
+    font-size: 2.2rem;
+    letter-spacing: 0.05em;
     user-select: none;
-    box-shadow: 0 4px 8px var(--shadow-medium);
+    box-shadow: 0 0.25rem 0.5rem var(--shadow-medium);
+    position: sticky; /* Sticky header */
+    top: 0;
+    z-index: 1000; /* Pastikan di atas konten lain */
 }
 
 nav {
     display: flex;
-    background: var(--primary-dark);
-    flex-wrap: wrap; /* Izinkan tombol wrap ke baris berikutnya di layar kecil */
-    box-shadow: 0 2px 5px var(--shadow-light);
+    background-color: var(--primary-dark);
+    box-shadow: 0 0.125rem 0.25rem var(--shadow-light);
+    flex-wrap: wrap; /* Izinkan item wrap */
+    justify-content: center; /* Tengahkan tombol navigasi */
 }
 
 nav button {
-    flex-grow: 1;
-    flex-basis: auto; /* Memungkinkan item menyesuaikan lebar */
+    flex-grow: 1; /* Biarkan tombol tumbuh */
+    flex-basis: 0; /* Minimal lebar 0, akan disesuaikan flex-grow */
     border: none;
-    padding: var(--padding-sm) var(--padding-md);
-    background: var(--primary-dark);
+    padding: var(--padding-md) var(--padding-sm);
+    background-color: transparent; /* Awalnya transparan */
     color: var(--white);
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.3s ease, transform 0.1s ease;
-    font-size: 0.95rem;
+    transition: background-color var(--transition-speed) var(--transition-ease), 
+                transform 0.15s var(--transition-ease),
+                box-shadow var(--transition-speed) var(--transition-ease);
+    font-size: 1rem;
     white-space: nowrap; /* Mencegah teks putus baris */
+    position: relative; /* Untuk underline efek */
+    overflow: hidden; /* Sembunyikan overflow dari efek */
+}
+
+nav button::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--white);
+    transform: translateX(-100%); /* Awalnya sembunyi di kiri */
+    transition: transform var(--transition-speed) var(--transition-ease);
 }
 
 nav button:hover {
-    background: var(--primary-color);
-    transform: translateY(-2px); /* Efek hover modern */
+    background-color: rgba(255, 255, 255, 0.1); /* Sedikit terang saat hover */
+    transform: translateY(-2px); /* Efek melayang */
 }
 
 nav button.active {
-    background: var(--primary-color);
+    background-color: var(--primary-color);
+    font-weight: 600;
     box-shadow: inset 0 3px 6px var(--shadow-medium);
-    border-bottom: 3px solid var(--white); /* Indikator tab aktif */
-    font-weight: 700;
 }
 
+nav button.active::after {
+    transform: translateX(0); /* Tampilkan underline saat aktif */
+}
+
+/* --- 4. Main Content Area --- */
 main {
-    flex-grow: 1; /* Memastikan main mengisi ruang yang tersedia */
-    max-width: 1000px; /* Lebar maksimal konten */
-    margin: var(--margin-md) auto;
-    background: var(--white);
-    border-radius: var(--border-radius-md);
-    box-shadow: 0 8px 20px var(--shadow-medium);
+    flex-grow: 1;
+    max-width: 1200px; /* Lebar maksimal konten */
+    margin: var(--margin-lg) auto;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 0.5rem 1.5rem var(--shadow-medium);
     padding: var(--padding-lg);
-    box-sizing: border-box; /* Pastikan padding tidak menambah lebar */
-    overflow-x: hidden; /* Mencegah overflow horizontal di main content */
+    box-sizing: border-box;
+    overflow: hidden; /* Mengatasi potensi overflow elemen anak */
 }
 
 section {
     display: none;
-    animation: fadeIn 0.5s ease-out; /* Animasi saat tab berubah */
+    padding: var(--section-gap) 0; /* Jarak atas/bawah antar section */
+    animation: fadeIn 0.6s var(--transition-ease);
 }
+
+section:first-of-type {
+    padding-top: 0; /* Hilangkan padding atas untuk section pertama */
+}
+section:last-of-type {
+    padding-bottom: 0; /* Hilangkan padding bawah untuk section terakhir */
+}
+
 
 section.active {
     display: block;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
+    from { opacity: 0; transform: translateY(15px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
+/* --- 5. Headings --- */
 h2 {
     margin-top: 0;
     color: var(--primary-color);
     font-weight: 700;
-    font-size: 1.8rem;
+    font-size: 2rem;
     border-bottom: 2px solid var(--border-color);
-    padding-bottom: 0.5rem;
-    margin-bottom: var(--margin-md);
+    padding-bottom: 0.75rem;
+    margin-bottom: var(--margin-lg);
+    text-transform: capitalize; /* Otomatis kapitalisasi huruf pertama */
 }
 
 h3 {
     color: var(--text-color);
-    font-size: 1.3rem;
+    font-size: 1.5rem;
+    font-weight: 600;
     margin-top: var(--margin-lg);
-    margin-bottom: var(--margin-sm);
+    margin-bottom: var(--margin-md);
 }
 
+/* --- 6. Form Elements (Labels, Inputs, Selects) --- */
 label {
     display: block;
-    margin-top: var(--margin-sm);
-    font-weight: 600;
-    color: var(--light-text-color);
-    font-size: 0.9rem;
+    margin-top: var(--margin-md);
+    font-weight: 500;
+    color: var(--text-light);
+    font-size: 0.95rem;
 }
 
 input[type=text],
 input[type=number],
+input[type=date],
 select {
     width: 100%;
     padding: var(--padding-sm);
-    margin-top: 0.4rem;
+    margin-top: 0.5rem;
     box-sizing: border-box;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     font-size: 1rem;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-    background-color: var(--white);
+    color: var(--text-color);
+    background-color: var(--card-background);
+    transition: border-color var(--transition-speed) var(--transition-ease), 
+                box-shadow var(--transition-speed) var(--transition-ease);
+}
+
+input[type=text]::placeholder,
+input[type=number]::placeholder {
+    color: var(--text-light);
+    opacity: 0.7;
 }
 
 input[type=text]:focus,
 input[type=number]:focus,
+input[type=date]:focus,
 select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(74, 84, 225, 0.2); /* Ring focus yang lebih lembut */
+    box-shadow: 0 0 0 0.15rem rgba(0, 123, 255, 0.25); /* Ring fokus yang lebih lembut */
 }
 
+/* --- 7. Buttons --- */
 button.primary {
-    margin-top: var(--margin-md);
+    margin-top: var(--margin-lg);
     background: var(--primary-color);
     color: var(--white);
     border: none;
-    padding: 0.8rem 2rem;
+    padding: var(--padding-md) var(--padding-lg);
     font-weight: 600;
     cursor: pointer;
     border-radius: var(--border-radius-sm);
     font-size: 1rem;
-    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 10px rgba(74, 84, 225, 0.3);
+    transition: background-color var(--transition-speed) var(--transition-ease), 
+                transform 0.15s var(--transition-ease), 
+                box-shadow var(--transition-speed) var(--transition-ease);
+    box-shadow: 0 0.25rem 0.75rem rgba(0, 123, 255, 0.2); /* Bayangan tombol */
 }
 
 button.primary:hover {
     background: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 15px rgba(74, 84, 225, 0.4);
+    transform: translateY(-3px); /* Efek melayang lebih tinggi */
+    box-shadow: 0 0.375rem 1rem rgba(0, 123, 255, 0.3);
 }
 
+button.primary:active {
+    transform: translateY(0); /* Efek tombol ditekan */
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.2);
+}
+
+/* --- 8. Tables --- */
 table {
     width: 100%;
-    border-collapse: separate; /* Menggunakan separate untuk border-radius */
-    border-spacing: 0; /* Menghilangkan spasi antar sel */
-    margin-top: var(--margin-md);
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: var(--margin-lg);
     border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
-    overflow: hidden; /* Memastikan border-radius terlihat */
-    box-shadow: 0 2px 10px var(--shadow-light);
+    border-radius: var(--border-radius-md);
+    overflow: hidden; /* Penting untuk border-radius */
+    box-shadow: 0 0.125rem 0.5rem var(--shadow-light);
 }
 
 th, td {
-    padding: 0.8rem 1rem;
+    padding: var(--padding-sm) var(--padding-md);
     text-align: left;
-    font-size: 0.9rem;
-    border-bottom: 1px solid var(--border-color); /* Hanya border bawah */
+    font-size: 0.95rem;
+    border-bottom: 1px solid var(--border-color);
 }
 
 th {
-    background: #eef2f7; /* Latar belakang header tabel yang lebih modern */
+    background-color: #e9ecef; /* Latar belakang header tabel */
     color: var(--text-color);
     font-weight: 600;
     text-transform: uppercase;
+    font-size: 0.85rem; /* Header lebih kecil */
 }
 
 tr:last-child td {
-    border-bottom: none; /* Hilangkan border bawah pada baris terakhir */
+    border-bottom: none;
 }
 
 tr:hover {
-    background: #f7f9fb; /* Hover baris yang lebih lembut */
+    background-color: #f2f2f2; /* Hover yang lembut */
 }
 
-button.edit, button.delete {
+/* --- 9. Action Buttons (Edit/Delete) --- */
+button.edit, button.delete, button.view-receipt {
     background: none;
     border: none;
-    color: var(--primary-color);
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     padding: 0.3rem 0.6rem;
     margin-right: 0.4rem;
     border-radius: var(--border-radius-sm);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color var(--transition-speed) var(--transition-ease), 
+                color var(--transition-speed) var(--transition-ease);
     font-size: 0.85rem;
 }
 
+button.edit {
+    color: var(--primary-color);
+}
+
 button.edit:hover {
-    background: rgba(74, 84, 225, 0.1); /* Biru terang */
+    background-color: rgba(0, 123, 255, 0.1);
     color: var(--primary-dark);
 }
 
@@ -232,31 +322,87 @@ button.delete {
 }
 
 button.delete:hover {
-    background: rgba(220, 53, 69, 0.1); /* Merah terang */
+    background-color: var(--danger-light);
     color: var(--danger-color);
 }
 
-.small-input {
-    width: 80px; /* Jika ada input dengan lebar spesifik */
+button.view-receipt {
+    background-color: var(--primary-color);
+    color: var(--white);
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--border-radius-sm);
+}
+
+button.view-receipt:hover {
+    background-color: var(--primary-dark);
+}
+
+/* --- 10. Specific Elements --- */
+.action-buttons-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--margin-md); /* Jarak antar tombol */
+    margin-top: var(--margin-lg);
+    justify-content: flex-start; /* Rata kiri */
+}
+
+.action-buttons-group button.primary {
+    margin-top: 0; /* Override margin-top default primary button */
+    flex-grow: 1;
+    min-width: 150px; /* Lebar minimum agar tidak terlalu kecil */
+}
+
+.filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--margin-md);
+    margin-bottom: var(--margin-md);
+    align-items: flex-end; /* Rata bawah untuk alignment visual */
+}
+
+.filter-controls label {
+    margin-top: 0;
+    margin-bottom: 0.3rem;
+    flex-basis: auto; /* Izinkan label menyesuaikan lebar */
+    min-width: 80px; /* Minimum width for labels */
+}
+
+.filter-controls input[type="date"] {
+    flex-grow: 1;
+    max-width: 250px; /* Lebar maksimal yang lebih masuk akal */
+    margin-top: 0;
+}
+
+.filter-controls button {
+    margin-top: 0;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+}
+
+.separator-line {
+    border: 0;
+    border-top: 1px dashed var(--border-color);
+    margin: var(--section-gap) 0;
 }
 
 .receipt {
-    white-space: pre-wrap;
-    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; /* Font monospace yang lebih modern */
-    background: var(--white);
+    white-space: pre-wrap; /* Mempertahankan spasi dan baris baru */
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    background-color: var(--card-background);
     padding: var(--padding-md) var(--padding-lg);
     border-radius: var(--border-radius-md);
-    box-shadow: 0 4px 12px var(--shadow-light);
-    font-size: 0.95rem;
+    box-shadow: 0 0.25rem 0.75rem var(--shadow-light);
+    font-size: 0.9rem;
     line-height: 1.4;
-    text-align: center; /* Untuk menengahkan logo dan informasi toko */
-    overflow-x: auto; /* Agar struk bisa discroll horizontal jika terlalu lebar */
+    text-align: center; /* Untuk header struk */
+    overflow-x: auto; /* Horizontal scroll jika konten terlalu lebar */
+    border: 1px solid var(--border-color);
 }
 
 .receipt .store-logo {
-    max-width: 120px; /* Lebih kecil agar tidak terlalu mendominasi */
+    max-width: 100px; /* Lebih kecil agar tidak terlalu mendominasi */
     height: auto;
-    margin-bottom: 10px;
+    margin-bottom: 1rem;
     display: block;
     margin-left: auto;
     margin-right: auto;
@@ -268,73 +414,93 @@ button.delete:hover {
     white-space: pre-wrap;
     margin: 0;
     padding: 0;
-    text-align: left; /* Konten detail struk (item, total) rata kiri */
+    text-align: left; /* Konten detail struk rata kiri */
 }
 
-.receipt hr {
+.receipt hr { /* Untuk hr di dalam struk */
     border: 0;
-    border-top: 1px dashed var(--border-color); /* Garis putus-putus yang lebih halus */
-    margin: 15px 0;
+    border-top: 1px dashed #aaa;
+    margin: 0.75rem 0;
 }
 
 canvas {
     max-width: 100%;
-    height: 350px; /* Tinggi grafik sedikit lebih tinggi */
-    margin-top: var(--margin-md);
-    background: var(--white);
+    height: 380px; /* Tinggi grafik yang lebih ideal */
+    margin-top: var(--margin-lg);
+    background-color: var(--card-background);
     border-radius: var(--border-radius-md);
-    box-shadow: 0 4px 10px var(--shadow-light);
-    padding: 1rem;
+    box-shadow: 0 0.25rem 0.75rem var(--shadow-light);
+    padding: var(--padding-md);
     box-sizing: border-box;
 }
 
 .alert {
     padding: var(--padding-sm);
-    background: rgba(220, 53, 69, 0.1); /* Latar belakang alert merah muda transparan */
+    background-color: var(--danger-light);
     color: var(--danger-color);
     border: 1px solid var(--danger-color);
     border-radius: var(--border-radius-sm);
     margin-top: var(--margin-md);
     font-weight: 600;
     text-align: center;
+    box-shadow: 0 0.125rem 0.25rem var(--shadow-light);
 }
 
-/* --- MEDIA QUERIES UNTUK RESPONSIVITAS --- */
+/* --- 11. Responsiveness (Media Queries) --- */
 
-/* Tablet & Layar Menengah */
+/* Medium Devices (Tablets, Laptops kecil) */
 @media (max-width: 992px) {
-    header {
-        font-size: 1.5rem;
-        padding: var(--padding-md);
+    body {
+        font-size: 15px;
     }
-    main {
-        margin: var(--margin-sm);
+    header {
+        font-size: 1.8rem;
         padding: var(--padding-md);
     }
     nav button {
+        padding: var(--padding-sm) var(--padding-md);
         font-size: 0.9rem;
-        padding: 0.6rem 0.8rem;
+    }
+    main {
+        margin: var(--margin-md) auto;
+        padding: var(--padding-md);
+        border-radius: var(--border-radius-md);
     }
     h2 {
-        font-size: 1.6rem;
+        font-size: 1.8rem;
     }
     h3 {
-        font-size: 1.2rem;
+        font-size: 1.3rem;
+    }
+    canvas {
+        height: 300px;
+    }
+    .action-buttons-group {
+        flex-direction: column; /* Tombol ekspor/impor bertumpuk */
+        gap: var(--margin-sm);
+    }
+    .action-buttons-group button.primary {
+        width: 100%;
+        min-width: unset;
     }
 }
 
-/* Ponsel & Layar Kecil */
+/* Small Devices (Phones) */
 @media (max-width: 768px) {
+    body {
+        font-size: 14px;
+    }
     header {
-        font-size: 1.3rem;
+        font-size: 1.5rem;
         padding: var(--padding-sm);
     }
     nav {
-        flex-direction: column; /* Tombol navigasi menjadi vertikal */
+        flex-direction: column; /* Tombol navigasi vertikal */
     }
     nav button {
-        padding: 0.7rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Garis pemisah antar tombol */
+        padding: var(--padding-sm) var(--padding-md);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 0.85rem;
     }
     nav button:last-child {
         border-bottom: none;
@@ -345,108 +511,130 @@ canvas {
         border-radius: var(--border-radius-sm);
     }
     h2 {
-        font-size: 1.4rem;
-        padding-bottom: 0.3rem;
+        font-size: 1.5rem;
+        padding-bottom: 0.5rem;
+        margin-bottom: var(--margin-md);
     }
     h3 {
-        font-size: 1.1rem;
+        font-size: 1.2rem;
     }
-    table, th, td {
-        display: block; /* Tabel responsif: setiap baris menjadi blok */
-        width: 100%;
-        box-sizing: border-box;
+
+    /* Tabel Responsif (Card-like layout) */
+    table, thead, tbody, th, td, tr {
+        display: block;
+        width: 100%; /* Memastikan setiap elemen mengambil lebar penuh */
     }
-    th {
-        display: none; /* Sembunyikan header tabel di layar kecil */
+    thead {
+        display: none; /* Sembunyikan header asli */
+    }
+    tr {
+        margin-bottom: var(--margin-md);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius-md);
+        overflow: hidden; /* Penting untuk radius */
+        box-shadow: 0 0.125rem 0.5rem var(--shadow-light);
+        padding: var(--padding-sm) 0; /* Padding vertikal untuk baris */
     }
     td {
-        border-bottom: 1px solid var(--border-color);
-        padding: 0.6rem 0.8rem;
-        text-align: right;
+        border: none; /* Hilangkan semua border sel */
         position: relative;
+        padding-left: 50%; /* Ruang untuk pseudo-element label */
+        text-align: right;
+        padding-right: var(--padding-sm); /* Padding kanan */
+        font-size: 0.9rem;
     }
     td::before {
         content: attr(data-label); /* Tampilkan label kolom */
         position: absolute;
-        left: 1rem;
-        font-weight: 600;
-        color: var(--light-text-color);
-        text-align: left;
-        width: calc(50% - 1.5rem); /* Sesuaikan lebar label */
+        left: var(--padding-sm);
+        width: calc(50% - var(--padding-md)); /* Atur lebar label */
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        font-weight: 600;
+        color: var(--text-light);
+        text-align: left;
     }
-    td:last-child {
-        border-bottom: none;
+    /* Penyesuaian khusus untuk kolom Actions agar tombol tetap di tengah/kanan */
+    td[data-label="Actions"], td:last-child:not([data-label="Actions"]) {
+        text-align: center; /* Rata tengah untuk tombol/kolom terakhir */
+        padding-left: var(--padding-sm); /* Reset padding-left */
     }
-    /* Khusus untuk tabel Sales Analysis */
-    #best-sellers-table td::before {
-        width: calc(70% - 1.5rem); /* Lebar label yang berbeda untuk tabel ini */
-    }
-    /* Untuk tombol edit/delete agar tidak bergeser */
-    td:nth-child(5) {
-        text-align: center; /* Rata tengah untuk kolom Actions */
-    }
-    td:nth-child(5)::before {
+    td[data-label="Actions"]::before {
         display: none; /* Sembunyikan label untuk kolom actions */
     }
-    /* Penyesuaian untuk input dan tombol */
-    input[type=text], input[type=number], select, button.primary {
+
+    /* Filter Controls Responsif */
+    .filter-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--margin-sm);
+    }
+    .filter-controls label {
+        width: 100%;
+        margin-bottom: 0.3rem;
+    }
+    .filter-controls input[type="date"],
+    .filter-controls button {
+        max-width: 100%;
+        width: 100%;
+        margin-top: 0;
+    }
+
+    /* Input dan Tombol Umum */
+    input[type=text], input[type=number], input[type=date], select {
         font-size: 0.9rem;
         padding: 0.6rem;
     }
     button.primary {
-        width: 100%; /* Tombol primary penuh lebar */
+        width: 100%;
+        padding: 0.7rem 1.5rem;
+        font-size: 0.95rem;
+        margin-top: var(--margin-md);
     }
     .receipt {
-        padding: 0.8rem 1rem;
-        font-size: 0.85rem;
+        padding: var(--padding-sm) var(--padding-md);
+        font-size: 0.8rem;
     }
     .receipt .store-logo {
-        max-width: 100px;
+        max-width: 80px;
+        margin-bottom: 0.75rem;
+    }
+    canvas {
+        height: 250px;
+        padding: var(--padding-sm);
     }
 }
 
-/* Sangat Kecil (mis. Beberapa ponsel lama) */
+/* Extra Small Devices (contoh: iPhone SE, atau custom kecil) */
 @media (max-width: 480px) {
+    body {
+        font-size: 13px;
+    }
     header {
-        font-size: 1.1rem;
-        padding: 0.8rem;
+        font-size: 1.3rem;
+        padding: 0.75rem;
     }
     nav button {
         font-size: 0.8rem;
-        padding: 0.5rem;
+        padding: 0.4rem;
     }
     main {
         margin: 0.5rem;
-        padding: 0.8rem;
+        padding: 0.75rem;
     }
     h2 {
-        font-size: 1.2rem;
+        font-size: 1.3rem;
     }
     h3 {
         font-size: 1rem;
     }
     td::before {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
+        left: 0.5rem;
+        width: calc(50% - 1rem);
     }
-    canvas {
-        height: 250px; /* Kurangi tinggi grafik */
+    td {
+        padding-left: 55%;
     }
 }
-
-/* Penyesuaian data-label untuk tabel responsif */
-/* Penting: Ini perlu ditambahkan secara dinamis di JavaScript saat merender tabel */
-/* Contoh di JS:
-   tr.innerHTML = `
-     <td data-label="Name">${escapeHtml(p.name)}</td>
-     <td data-label="Cost (HPP)">${formatCurrency(p.cost)}</td>
-     <td data-label="Price">${formatCurrency(p.price)}</td>
-     <td data-label="Stock">${p.stock}</td>
-     <td data-label="Actions">
-       <button class="edit" aria-label="Edit ${escapeHtml(p.name)}">Edit</button>
-       <button class="delete" aria-label="Delete ${escapeHtml(p.name)}">Delete</button>
-     </td>
-   `;
-*/
