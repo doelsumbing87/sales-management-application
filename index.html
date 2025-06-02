@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sales Management Application</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>Sales Management Application</header>
+    <nav>
+        <button class="active" data-tab="inventory">Inventory</button>
+        <button data-tab="sales">Sales</button>
+        <button data-tab="receipt">Receipt</button>
+        <button data-tab="hpp">HPP Calculator</button>
+        <button data-tab="profit-loss">Profit & Loss</button>
+        <button data-tab="analysis">Sales Analysis</button>
+    </nav>
+    <main>
+        <section id="inventory" class="active">
+            <h2>Inventory Management</h2>
+            <form id="inventory-form">
+                <input type="hidden" id="product-id" />
+                <label for="product-name">Product Name</label>
+                <input type="text" id="product-name" required maxlength="50" placeholder="Enter product name" />
+                <label for="product-cost">Cost per Unit</label>
+                <input type="number" id="product-cost" min="0" step="0.01" required placeholder="0.00" />
+                <label for="product-price">Selling Price per Unit</label>
+                <input type="number" id="product-price" min="0" step="0.01" required placeholder="0.00" />
+                <label for="product-stock">Stock Quantity</label>
+                <input type="number" id="product-stock" min="0" step="1" required placeholder="0" />
+                <button type="submit" class="primary">Add / Update Product</button>
+            </form>
+            <div id="inventory-alert" class="alert" style="display:none;"></div>
+            <table id="inventory-table" aria-label="Inventory Table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Cost (HPP)</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </section>
+
+        <section id="sales">
+            <h2>Sales</h2>
+            <form id="sales-form">
+                <label for="sale-product">Select Product</label>
+                <select id="sale-product" required>
+                    </select>
+                <label for="sale-quantity">Quantity</label>
+                <input type="number" id="sale-quantity" min="1" step="1" value="1" required />
+                <button type="submit" class="primary">Add Sale</button>
+            </form>
+            <div id="sales-alert" class="alert" style="display:none;"></div>
+            <h3>Today's Sales</h3>
+            <table id="sales-table" aria-label="Sales Table">
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Quantity</th>
+                        <th>Price per Unit</th>
+                        <th>Total</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </section>
+
+        <section id="receipt">
+            <h2>Last Receipt</h2>
+            <pre id="receipt-output" class="receipt">No sales yet.</pre>
+            <button id="print-receipt" class="primary" disabled>Print Receipt</button>
+        </section>
+
+        <section id="hpp">
+            <h2>Cost of Goods Sold (HPP) Calculator</h2>
+            <p>This calculates total Cost of Goods Sold based on sales made.</p>
+            <button id="calculate-hpp" class="primary">Calculate HPP</button>
+            <p><strong>Cost of Goods Sold:</strong> $<span id="hpp-result">0.00</span></p>
+        </section>
+
+        <section id="profit-loss">
+            <h2>Profit & Loss Calculator</h2>
+            <p>This calculates profit or loss based on sales and cost of goods sold.</p>
+            <button id="calculate-pnl" class="primary">Calculate Profit / Loss</button>
+            <p><strong>Total Sales Revenue:</strong> $<span id="pnl-sales">0.00</span></p>
+            <p><strong>Total Cost (HPP):</strong> $<span id="pnl-cost">0.00</span></p>
+            <p><strong>Profit / Loss:</strong> $<span id="pnl-result" style="font-weight:700;">0.00</span></p>
+        </section>
+
+        <section id="analysis">
+            <h2>Sales Analysis</h2>
+            <h3>Best Selling Products</h3>
+            <table id="best-sellers-table" aria-label="Best Sellers Table">
+                <thead>
+                    <tr><th>Product Name</th><th>Total Quantity Sold</th></tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+            <h3>Daily Revenue Graph</h3>
+            <canvas id="daily-revenue-chart"></canvas>
+        </section>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
