@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Sales Management Application</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
@@ -11,13 +12,13 @@
 <body>
     <header>Sales Management Application</header>
     <nav>
-        <button class="active" data-tab="inventory">Inventory</button>
-        <button data-tab="sales">Sales</button>
-        <button data-tab="transaction-history">Transaction History</button>
-        <button data-tab="hpp">HPP Calculator</button>
-        <button data-tab="profit-loss">Profit & Loss</button>
-        <button data-tab="analysis">Sales Analysis</button>
-    </nav>
+        <button class="active" data-tab="inventory"><i class="fas fa-boxes"></i> Inventory</button>
+        <button data-tab="sales"><i class="fas fa-cash-register"></i> Sales</button>
+        <button data-tab="transaction-history"><i class="fas fa-receipt"></i> History</button>
+        <button data-tab="hpp"><i class="fas fa-calculator"></i> HPP</button>
+        <button data-tab="profit-loss"><i class="fas fa-chart-line"></i> P&L</button>
+        <button data-tab="analysis"><i class="fas fa-chart-pie"></i> Analysis</button>
+        <button data-tab="store-settings"><i class="fas fa-store"></i> Settings</button> </nav>
     <main>
         <section id="inventory" class="active">
             <h2>Inventory Management</h2>
@@ -47,7 +48,8 @@
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th>Category</th> <th>Cost (HPP)</th>
+                        <th>Category</th>
+                        <th>Cost (HPP)</th>
                         <th>Price</th>
                         <th>Stock</th>
                         <th>Actions</th>
@@ -68,7 +70,8 @@
                 <button id="apply-sales-category-filter" class="primary small-button">Apply Filter</button>
                 <button id="clear-sales-category-filter" class="primary small-button">Clear Filter</button>
             </div>
-            <hr class="separator-line"> <form id="sales-form">
+            <hr class="separator-line">
+            <form id="sales-form">
                 <label for="sale-product">Select Product</label>
                 <select id="sale-product" required>
                     <option value="">-- Select a product --</option>
@@ -156,7 +159,7 @@
                     <label for="hpp-unit-for-calc">Select Product for Pricing:</label>
                     <select id="hpp-unit-for-calc" required>
                         <option value="">-- Select Product --</option>
-                        </select>
+                    </select>
 
                     <label for="target-profit-percent">Target Profit Margin (%)</label>
                     <input type="number" id="target-profit-percent" min="1" max="100" step="1" value="20" placeholder="e.g., 20" />
@@ -168,7 +171,7 @@
                     <label for="hpp-unit-for-margin-calc">Select Product for Margin Analysis:</label>
                     <select id="hpp-unit-for-margin-calc" required>
                         <option value="">-- Select Product --</option>
-                        </select>
+                    </select>
                     <label for="current-selling-price">Current Selling Price (from product data)</label>
                     <input type="text" id="display-current-selling-price" readonly disabled />
                     <button id="calculate-actual-margin" class="primary small-button">Calculate Actual Margin</button>
@@ -219,6 +222,40 @@
 
             <h3>Revenue Distribution (by Product)</h3>
             <canvas id="product-distribution-chart"></canvas>
+        </section>
+
+        <section id="store-settings">
+            <h2>Store Information Settings</h2>
+            <form id="store-settings-form">
+                <label for="store-name">Store Name</label>
+                <input type="text" id="store-name" maxlength="100" placeholder="e.g., RM. AMPERA ABBEEY" required />
+
+                <label for="store-address-line1">Address Line 1</label>
+                <input type="text" id="store-address-line1" maxlength="100" placeholder="e.g., Jl. Lintas Sumatera, Candimas, Kec." required />
+
+                <label for="store-address-line2">Address Line 2</label>
+                <input type="text" id="store-address-line2" maxlength="100" placeholder="e.g., Abung Sel., Kabupaten Lampung Utara," />
+
+                <label for="store-address-line3">Address Line 3</label>
+                <input type="text" id="store-address-line3" maxlength="100" placeholder="e.g., Lampung 34511, Indonesia" />
+
+                <label for="store-phone">Phone Number</label>
+                <input type="text" id="store-phone" maxlength="50" placeholder="e.g., +62 895 6096 10780" />
+
+                <label for="store-website">Website/Social Media Link</label>
+                <input type="url" id="store-website" maxlength="150" placeholder="e.g., https://rm-ampera-abbeey.vercel.app" />
+
+                <label for="store-logo-upload">Upload Store Logo</label>
+                <input type="file" id="store-logo-upload" accept="image/png, image/jpeg, image/gif" />
+                <p class="text-light-small">Recommended: Square logo, max 200x200px for best display on receipt.</p>
+                <div id="current-logo-preview" style="margin-top: 10px;">
+                    Current Logo: <img id="logo-preview-img" src="" alt="Current Store Logo" style="max-width: 100px; max-height: 100px; display: block; margin-top: 5px; border: 1px solid #ddd;">
+                    <span id="logo-status" style="font-style: italic; color: var(--text-light);">No logo uploaded.</span>
+                </div>
+                
+                <button type="submit" class="primary">Save Store Settings</button>
+            </form>
+            <div id="store-settings-alert" class="alert" style="display:none;"></div>
         </section>
     </main>
 
