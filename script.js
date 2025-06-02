@@ -103,7 +103,7 @@
         address3: "Lampung 34511, Indonesia",
         phone: "+62 895 6096 10780",
         website: "https://rm-ampera-abbeey.vercel.app",
-        logoPath: "logo-abbey.png"
+        logoPath: "logo-receipt.png"
     };
 
     // --- FUNGSI UTILITY ---
