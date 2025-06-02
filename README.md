@@ -1,7 +1,7 @@
 # Sales Management Application
 
+![www](https://github.com/user-attachments/assets/15d72eb3-6409-4a49-83e9-1694ab42e972)
 
-![ss](https://github.com/user-attachments/assets/29722d83-4ee1-4dd1-9398-2bd0f5ce21e6)
 
 ## Overview
 
