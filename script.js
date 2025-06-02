@@ -75,15 +75,45 @@
     const exportSalesBtn = document.getElementById('export-sales-btn');
     const importSalesFile = document.getElementById('import-sales-file');
 
+    // NEW: Store Settings elements
+    const storeSettingsSection = document.getElementById('store-settings');
+    const storeSettingsForm = document.getElementById('store-settings-form');
+    const storeNameField = document.getElementById('store-name');
+    const storeAddressLine1Field = document.getElementById('store-address-line1');
+    const storeAddressLine2Field = document.getElementById('store-address-line2');
+    const storeAddressLine3Field = document.getElementById('store-address-line3');
+    const storePhoneField = document.getElementById('store-phone');
+    const storeWebsiteField = document.getElementById('store-website');
+    const storeLogoUploadField = document.getElementById('store-logo-upload');
+    const logoPreviewImg = document.getElementById('logo-preview-img');
+    const logoStatusSpan = document.getElementById('logo-status');
+    const storeSettingsAlert = document.getElementById('store-settings-alert');
+
+
     // --- DATA & STORAGE ---
     const STORAGE_KEYS = {
         INVENTORY: 'salesApp_inventory',
-        SALES: 'salesApp_sales'
+        SALES: 'salesApp_sales',
+        STORE_INFO: 'salesApp_storeInfo' // NEW: Key for store info
     };
 
     let inventory = [];
     let sales = [];
-    let lastTransactionDetails = null; // Menyimpan detail transaksi terakhir yang dilihat/terbaru
+    let lastTransactionDetails = null;
+
+    // NEW: Store information will be loaded/saved here
+    let storeInfo = {
+        name: "RM. AMPERA ABBEEY",
+        address1: "Jl. Lintas Sumatera, Candimas, Kec.",
+        address2: "Abung Sel., Kabupaten Lampung Utara,",
+        address3: "Lampung 34511, Indonesia",
+        phone: "+62 895 6096 10780",
+        website: "https://rm-ampera-abbeey.vercel.app",
+        logoData: null // Store logo as Base64 string
+    };
+    // Default logo path will be used if logoData is null.
+    // If logoData exists, it will override the logoPath.
+    const defaultLogoPath = "logo-abbey.png"; // Make sure this file exists in your project root!
 
     // --- CHART INSTANCES ---
     let dailyRevenueChart;
@@ -93,18 +123,7 @@
     // --- FILTER STATE ---
     let currentFilterFromDate = null;
     let currentFilterToDate = null;
-    let currentSalesCategoryFilter = ''; // State for sales category filter
-
-    // --- KONFIGURASI TOKO (Untuk Struk) ---
-    const storeInfo = {
-        name: "RM. AMPERA ABBEEY",
-        address1: "Jl. Lintas Sumatera, Candimas, Kec.",
-        address2: "Abung Sel., Kabupaten Lampung Utara,",
-        address3: "Lampung 34511, Indonesia",
-        phone: "+62 895 6096 10780",
-        website: "https://rm-ampera-abbeey.vercel.app",
-        logoPath: "logo-receipt.png" // Pastikan gambar ini ada di folder root proyek
-    };
+    let currentSalesCategoryFilter = '';
 
     // --- FUNGSI UTILITY ---
 
@@ -126,7 +145,22 @@
         sales = saved ? JSON.parse(saved) : [];
     }
 
-    // Mengubah format mata uang ke Rupiah Indonesia
+    // NEW: Save and Load Store Info
+    function saveStoreInfo() {
+        localStorage.setItem(STORAGE_KEYS.STORE_INFO, JSON.stringify(storeInfo));
+    }
+
+    function loadStoreInfo() {
+        const saved = localStorage.getItem(STORAGE_KEYS.STORE_INFO);
+        if (saved) {
+            const loadedInfo = JSON.parse(saved);
+            // Merge loaded info with defaults to handle new fields
+            storeInfo = { ...storeInfo, ...loadedInfo };
+        }
+        // Update the receipt preview immediately after loading
+        renderReceipt(); // Call renderReceipt after storeInfo is loaded
+    }
+
     function formatCurrency(value) {
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -204,31 +238,31 @@
         try {
             if (tabName === 'inventory') {
                 renderInventoryTable();
-                clearAlert(inventoryAlert); // Clear alert on tab switch
+                clearAlert(inventoryAlert);
             } else if (tabName === 'sales') {
                 populateCategoryFilters();
                 populateSaleProductOptions();
                 renderSalesTable();
-                clearAlert(salesAlert); // Clear alert on tab switch
+                clearAlert(salesAlert);
             } else if (tabName === 'transaction-history') {
                 renderFilteredSalesTable();
-                // If no specific transaction selected, default to last sale for receipt view
                 if (sales.length > 0 && !lastTransactionDetails) {
                      lastTransactionDetails = sales[sales.length - 1];
                 }
                 renderReceipt();
-                // Note: No specific alert for transaction history, general sales alert is used if needed.
             } else if (tabName === 'hpp') {
                 populateHppProductOptions();
                 calculateHpp();
-                // Ensure the select has options before dispatching event
-                if (hppUnitForMarginCalcSelect && hppUnitForMarginCalcSelect.options.length > 0) { // Check if element exists and has options
+                if (hppUnitForMarginCalcSelect && hppUnitForMarginCalcSelect.options.length > 0) {
                     hppUnitForMarginCalcSelect.dispatchEvent(new Event('change'));
                 }
             } else if (tabName === 'profit-loss') {
                 calculateProfitLoss();
             } else if (tabName === 'analysis') {
                 renderSalesAnalysis();
+            } else if (tabName === 'store-settings') { // NEW: Handle store settings tab
+                loadStoreSettingsForm();
+                clearAlert(storeSettingsAlert);
             }
         } catch (error) {
             console.error(`Error rendering tab "${tabName}":`, error);
@@ -312,7 +346,7 @@
 
     inventoryForm.addEventListener('submit', e => {
         e.preventDefault();
-        clearAlert(inventoryAlert); // Use clearAlert
+        clearAlert(inventoryAlert);
 
         const id = productIdField.value || generateId();
         const name = productNameField.value.trim();
@@ -629,14 +663,18 @@
 
         let receiptHtml = '';
 
-        receiptHtml += `<img src="${storeInfo.logoPath}" alt="Store Logo" class="store-logo">\n`;
+        // Use storeInfo.logoData if available, otherwise use default path
+        const currentLogoSource = storeInfo.logoData || defaultLogoPath;
+
+        receiptHtml += `<img src="${currentLogoSource}" alt="Store Logo" class="store-logo">\n`;
         receiptHtml += `<div style="text-align: center;">\n`;
-        receiptHtml += `  <strong>${storeInfo.name}</strong><br>\n`;
-        receiptHtml += `  ${storeInfo.address1}<br>\n`;
-        receiptHtml += `  ${storeInfo.address2}<br>\n`;
-        receiptHtml += `  ${storeInfo.address3}<br>\n`;
-        receiptHtml += `  ${storeInfo.phone}<br>\n`;
-        receiptHtml += `  ${storeInfo.website}<br>\n`;
+        receiptHtml += `  <strong>${escapeHtml(storeInfo.name)}</strong><br>\n`;
+        receiptHtml += `  ${escapeHtml(storeInfo.address1)}<br>\n`;
+        // Only add address lines if they exist
+        if (storeInfo.address2) receiptHtml += `  ${escapeHtml(storeInfo.address2)}<br>\n`;
+        if (storeInfo.address3) receiptHtml += `  ${escapeHtml(storeInfo.address3)}<br>\n`;
+        if (storeInfo.phone) receiptHtml += `  ${escapeHtml(storeInfo.phone)}<br>\n`;
+        if (storeInfo.website) receiptHtml += `  ${escapeHtml(storeInfo.website)}<br>\n`;
         receiptHtml += `</div>\n`;
 
         receiptHtml += `<hr style="border: 0; border-top: 1px dashed #aaa; margin: 10px 0;">\n`;
@@ -1385,11 +1423,115 @@
         }
     });
 
+    // --- NEW: STORE SETTINGS MANAGEMENT ---
+    function loadStoreSettingsForm() {
+        if (!storeNameField) { // Add check for null elements
+            console.warn("Store settings form elements not found. Skipping loadStoreSettingsForm.");
+            return;
+        }
+
+        storeNameField.value = storeInfo.name || '';
+        storeAddressLine1Field.value = storeInfo.address1 || '';
+        storeAddressLine2Field.value = storeInfo.address2 || '';
+        storeAddressLine3Field.value = storeInfo.address3 || '';
+        storePhoneField.value = storeInfo.phone || '';
+        storeWebsiteField.value = storeInfo.website || '';
+
+        // Display current logo or placeholder
+        if (storeInfo.logoData) {
+            logoPreviewImg.src = storeInfo.logoData;
+            logoPreviewImg.style.display = 'block';
+            logoStatusSpan.textContent = '';
+        } else {
+            logoPreviewImg.src = defaultLogoPath; // Fallback to default image path
+            logoPreviewImg.style.display = 'block';
+            logoStatusSpan.textContent = 'No custom logo uploaded. Using default.';
+        }
+    }
+
+    if (storeSettingsForm) { // Add check for null element
+        storeSettingsForm.addEventListener('submit', e => {
+            e.preventDefault();
+            clearAlert(storeSettingsAlert);
+
+            const newStoreName = storeNameField.value.trim();
+            const newAddress1 = storeAddressLine1Field.value.trim();
+            const newAddress2 = storeAddressLine2Field.value.trim();
+            const newAddress3 = storeAddressLine3Field.value.trim();
+            const newPhone = storePhoneField.value.trim();
+            const newWebsite = storeWebsiteField.value.trim();
+
+            if (!newStoreName || !newAddress1) {
+                showAlert(storeSettingsAlert, 'Store Name and Address Line 1 are required.', 'danger');
+                return;
+            }
+
+            // Update storeInfo object
+            storeInfo.name = newStoreName;
+            storeInfo.address1 = newAddress1;
+            storeInfo.address2 = newAddress2;
+            storeInfo.address3 = newAddress3;
+            storeInfo.phone = newPhone;
+            storeInfo.website = newWebsite;
+
+            // Handle logo upload
+            const file = storeLogoUploadField.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    storeInfo.logoData = event.target.result; // Store as Base64
+                    saveStoreInfo();
+                    loadStoreSettingsForm(); // Update preview
+                    renderReceipt(); // Update receipt with new logo
+                    showAlert(storeSettingsAlert, 'Store settings and logo saved successfully!', 'success');
+                };
+                reader.onerror = function(error) {
+                    console.error("Error reading file:", error);
+                    showAlert(storeSettingsAlert, 'Failed to read logo file. Please try again.', 'danger');
+                };
+                reader.readAsDataURL(file); // Convert file to Base64
+            } else {
+                // No new file uploaded, just save text settings
+                // If user previously uploaded a logo and now clears the input, logoData should persist unless explicitly cleared
+                // For simplicity, if input is empty, don't change logoData (keep previous or default)
+                saveStoreInfo();
+                renderReceipt(); // Update receipt with new text info
+                showAlert(storeSettingsAlert, 'Store settings saved successfully!', 'success');
+            }
+        });
+    }
+
+    if (storeLogoUploadField) { // Add check for null element
+        storeLogoUploadField.addEventListener('change', () => {
+            if (!storeLogoUploadField.files[0]) {
+                // If user cleared selection, revert preview to stored logo or default
+                if (storeInfo.logoData) {
+                    logoPreviewImg.src = storeInfo.logoData;
+                    logoStatusSpan.textContent = '';
+                } else {
+                    logoPreviewImg.src = defaultLogoPath;
+                    logoStatusSpan.textContent = 'No custom logo uploaded. Using default.';
+                }
+            } else {
+                // Show preview of newly selected file
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    logoPreviewImg.src = e.target.result;
+                    logoPreviewImg.style.display = 'block';
+                    logoStatusSpan.textContent = 'New logo selected (save to apply).';
+                };
+                reader.readAsDataURL(storeLogoUploadField.files[0]);
+            }
+        });
+    }
+
+
     // --- INISIALISASI ---
 
     function init() {
         loadInventory();
         loadSales();
+        loadStoreInfo(); // NEW: Load store info on initialization
 
         // Set initial date filters for Transaction History to today
         const today = new Date();
@@ -1420,11 +1562,10 @@
         });
 
         // Initial calculations and chart renders (these are also called by switchTab, but good to have a baseline on load)
-        calculateHpp(); // Also updates hppResultSpan
-        calculateProfitLoss(); // Also updates pnl spans
-        renderSalesAnalysis(); // Renders all analysis charts
+        calculateHpp();
+        calculateProfitLoss();
+        renderSalesAnalysis();
     }
 
-    // Jalankan inisialisasi ketika DOM sepenuhnya dimuat
     document.addEventListener('DOMContentLoaded', init);
 })();
