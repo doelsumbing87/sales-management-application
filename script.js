@@ -7,6 +7,7 @@
     const inventoryForm = document.getElementById('inventory-form');
     const productIdField = document.getElementById('product-id');
     const productNameField = document.getElementById('product-name');
+    const productCategoryField = document.getElementById('product-category'); // NEW: Category input
     const productCostField = document.getElementById('product-cost');
     const productPriceField = document.getElementById('product-price');
     const productStockField = document.getElementById('product-stock');
@@ -15,6 +16,9 @@
 
     // Sales elements
     const salesForm = document.getElementById('sales-form');
+    const filterSaleCategorySelect = document.getElementById('filter-sale-category'); // NEW: Sales category filter
+    const applySalesCategoryFilterBtn = document.getElementById('apply-sales-category-filter');
+    const clearSalesCategoryFilterBtn = document.getElementById('clear-sales-category-filter');
     const saleProductSelect = document.getElementById('sale-product');
     const saleQuantityField = document.getElementById('sale-quantity');
     const customerPaymentField = document.getElementById('customer-payment');
@@ -31,9 +35,22 @@
     const receiptOutput = document.getElementById('receipt-output');
     const printReceiptButton = document.getElementById('print-receipt');
 
-    // HPP elements
+    // HPP & Pricing Tools elements
     const calculateHppBtn = document.getElementById('calculate-hpp');
     const hppResultSpan = document.getElementById('hpp-result');
+    const hppUnitForCalcSelect = document.getElementById('hpp-unit-for-calc');
+    const targetProfitPercentField = document.getElementById('target-profit-percent');
+    const calculateRecommendedPriceBtn = document.getElementById('calculate-recommended-price');
+    const recommendedPriceSpan = document.getElementById('recommended-price');
+    const hppUnitForMarginCalcSelect = document.getElementById('hpp-unit-for-margin-calc');
+    const displayCurrentSellingPriceField = document.getElementById('display-current-selling-price');
+    const calculateActualMarginBtn = document.getElementById('calculate-actual-margin');
+    const actualProfitMarginSpan = document.getElementById('actual-profit-margin');
+    const absoluteProfitPerUnitSpan = document.getElementById('absolute-profit-per-unit');
+    const targetAbsoluteProfitField = document.getElementById('target-absolute-profit');
+    const calculateSalesNeededBtn = document.getElementById('calculate-sales-needed');
+    const salesNeededProductsSpan = document.getElementById('sales-needed-products');
+    const salesNeededRevenueSpan = document.getElementById('sales-needed-revenue');
 
     // Profit & Loss elements
     const calculatePnlBtn = document.getElementById('calculate-pnl');
@@ -71,6 +88,7 @@
     // --- FILTER STATE ---
     let currentFilterFromDate = null;
     let currentFilterToDate = null;
+    let currentSalesCategoryFilter = ''; // NEW: State for sales category filter
 
     // --- KONFIGURASI TOKO (Untuk Struk) ---
     const storeInfo = {
@@ -168,17 +186,22 @@
             s.classList.toggle('active', s.id === tabName);
         });
 
-        // Render atau update konten saat tab aktif
         if (tabName === 'inventory') renderInventoryTable();
         if (tabName === 'sales') {
+            populateCategoryFilters(); // Populate filters on sales tab entry
             populateSaleProductOptions();
-            renderSalesTable(); // Tabel penjualan hari ini
+            renderSalesTable();
         }
         if (tabName === 'transaction-history') {
-            renderFilteredSalesTable(); // Tabel transaksi yang difilter
-            renderReceipt(); // Tampilkan struk dari transaksi terakhir/yang dipilih
+            renderFilteredSalesTable();
+            renderReceipt();
         }
-        if (tabName === 'hpp') calculateHpp();
+        if (tabName === 'hpp') {
+            populateHppProductOptions(); // Populate selects on HPP tab entry
+            calculateHpp(); // Recalculate total HPP on tab entry
+            // Trigger initial state for pricing tools
+            hppUnitForMarginCalcSelect.dispatchEvent(new Event('change'));
+        }
         if (tabName === 'profit-loss') calculateProfitLoss();
         if (tabName === 'analysis') renderSalesAnalysis();
     }
@@ -190,7 +213,7 @@
         const activeProducts = inventory.filter(p => p.isActive);
         if (activeProducts.length === 0) {
             const tr = document.createElement('tr');
-            tr.innerHTML = '<td colspan="5" style="text-align:center;color:#777;">No active products in inventory.</td>';
+            tr.innerHTML = '<td colspan="6" style="text-align:center;color:#777;">No active products in inventory.</td>';
             inventoryTableBody.appendChild(tr);
             return;
         }
@@ -198,6 +221,7 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td data-label="Name">${escapeHtml(p.name)}</td>
+                <td data-label="Category">${escapeHtml(p.category)}</td>
                 <td data-label="Cost (HPP)">${formatCurrency(p.cost)}</td>
                 <td data-label="Price">${formatCurrency(p.price)}</td>
                 <td data-label="Stock">${p.stock}</td>
@@ -220,13 +244,14 @@
         if (!product) return;
         productIdField.value = product.id;
         productNameField.value = product.name;
+        productCategoryField.value = product.category; // Populate category
         productCostField.value = product.cost;
         productPriceField.value = product.price;
         productStockField.value = product.stock;
         inventoryForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function deleteProduct(id) { // Ini sekarang adalah "deactivate"
+    function deleteProduct(id) { // This is now "deactivate"
         clearInventoryAlert();
         const product = inventory.find(p => p.id === id);
         if (!product) return;
@@ -234,12 +259,13 @@
         if (confirm(`Are you sure you want to deactivate "${product.name}"? It will no longer appear in sales selection, but past sales data will remain for analysis.`)) {
             const index = inventory.findIndex(p => p.id === id);
             if (index !== -1) {
-                inventory[index].isActive = false; // Tandai sebagai tidak aktif
+                inventory[index].isActive = false; // Mark as inactive
             }
             saveInventory();
             renderInventoryTable();
             clearInventoryForm();
-            populateSaleProductOptions(); // Perbarui dropdown penjualan
+            populateSaleProductOptions(); // Update sales dropdown
+            populateCategoryFilters(); // Update category filters
             alert('Product deactivated successfully.');
         }
     }
@@ -247,6 +273,7 @@
     function clearInventoryForm() {
         productIdField.value = '';
         productNameField.value = '';
+        productCategoryField.value = ''; // Clear category
         productCostField.value = '';
         productPriceField.value = '';
         productStockField.value = '';
@@ -257,6 +284,7 @@
         clearInventoryAlert();
         const id = productIdField.value || generateId();
         const name = productNameField.value.trim();
+        const category = productCategoryField.value.trim(); // Get category
         const cost = parseFloat(productCostField.value);
         const price = parseFloat(productPriceField.value);
         const stock = parseInt(productStockField.value);
@@ -264,6 +292,11 @@
         if (!name) {
             inventoryAlert.style.display = 'block';
             inventoryAlert.textContent = 'Product name is required.';
+            return;
+        }
+        if (!category) { // Validate category
+            inventoryAlert.style.display = 'block';
+            inventoryAlert.textContent = 'Product category is required.';
             return;
         }
         if (!isPositiveNumber(cost)) {
@@ -281,6 +314,7 @@
             inventoryAlert.textContent = 'Stock quantity cannot be negative and must be a whole number.';
             return;
         }
+        // Check duplicate name for active products
         const nameConflict = inventory.find(p => p.name.toLowerCase() === name.toLowerCase() && p.id !== id && p.isActive);
         if (nameConflict) {
             inventoryAlert.style.display = 'block';
@@ -290,25 +324,50 @@
 
         const index = inventory.findIndex(p => p.id === id);
         if (index >= 0) {
-            // Perbarui data yang ada, pastikan isActive tetap true jika di-edit
-            inventory[index] = { ...inventory[index], name, cost, price, stock, isActive: true };
+            inventory[index] = { ...inventory[index], name, category, cost, price, stock, isActive: true }; // Update category
         } else {
-            inventory.push({ id, name, cost, price, stock, isActive: true }); // Produk baru aktif secara default
+            inventory.push({ id, name, category, cost, price, stock, isActive: true }); // Add category
         }
         saveInventory();
         renderInventoryTable();
         clearInventoryForm();
         populateSaleProductOptions();
+        populateCategoryFilters(); // Update category filters after adding/updating product
+        populateHppProductOptions(); // Update HPP product selects
         alert('Product added/updated successfully.');
     });
 
     // --- SALES MANAGEMENT ---
 
+    // NEW: Populate category filters for sales tab
+    function populateCategoryFilters() {
+        filterSaleCategorySelect.innerHTML = '<option value="">All Categories</option>';
+        const categories = new Set();
+        inventory.forEach(p => {
+            if (p.category) {
+                categories.add(p.category.trim());
+            }
+        });
+        const sortedCategories = Array.from(categories).sort((a, b) => a.localeCompare(b));
+        sortedCategories.forEach(cat => {
+            const option = document.createElement('option');
+            option.value = cat;
+            option.textContent = cat;
+            filterSaleCategorySelect.appendChild(option);
+        });
+        // Set current filter if it exists
+        filterSaleCategorySelect.value = currentSalesCategoryFilter;
+    }
+
     function populateSaleProductOptions() {
         saleProductSelect.innerHTML = '';
-        const activeProducts = inventory.filter(p => p.isActive);
+        let productsToDisplay = inventory.filter(p => p.isActive);
 
-        if (activeProducts.length === 0) {
+        if (currentSalesCategoryFilter) {
+            productsToDisplay = productsToDisplay.filter(p => p.category && p.category.toLowerCase() === currentSalesCategoryFilter.toLowerCase());
+        }
+
+        if (productsToDisplay.length === 0) {
             saleProductSelect.innerHTML = '<option value="">No active products available</option>';
             saleProductSelect.disabled = true;
             saleQuantityField.disabled = true;
@@ -319,14 +378,13 @@
         saleQuantityField.disabled = false;
         customerPaymentField.disabled = false;
 
-        saleProductSelect.innerHTML = '<option value="">-- Select a product --</option>' + activeProducts.map(p => {
+        saleProductSelect.innerHTML = '<option value="">-- Select a product --</option>' + productsToDisplay.map(p => {
             return `<option value="${p.id}">${escapeHtml(p.name)} (Stock: ${p.stock})</option>`;
         }).join('');
     }
 
     function renderSalesTable() {
         salesTableBody.innerHTML = '';
-        // Filter sales for today only
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const endOfToday = new Date();
@@ -407,10 +465,8 @@
 
         const change = customerPayment - saleTotal;
 
-        // Update stock
         product.stock -= quantity;
 
-        // Record sale
         const newSale = {
             id: generateId(),
             productId: productId,
@@ -425,15 +481,27 @@
         saveInventory();
         saveSales();
         renderInventoryTable();
-        populateSaleProductOptions();
+        populateSaleProductOptions(); // Update dropdown product stock
         renderSalesTable(); // Update today's sales table
         renderFilteredSalesTable(); // Update historical sales table
-        lastTransactionDetails = newSale; // Simpan detail untuk struk
-        renderReceipt(); // Render struk setelah penjualan baru
+        lastTransactionDetails = newSale;
+        renderReceipt();
 
         alert('Sale recorded successfully!');
         salesForm.reset();
         customerPaymentField.value = '';
+    });
+
+    // NEW: Event listeners for sales category filter
+    applySalesCategoryFilterBtn.addEventListener('click', () => {
+        currentSalesCategoryFilter = filterSaleCategorySelect.value;
+        populateSaleProductOptions(); // Re-populate product dropdown with filter applied
+    });
+
+    clearSalesCategoryFilterBtn.addEventListener('click', () => {
+        currentSalesCategoryFilter = '';
+        filterSaleCategorySelect.value = '';
+        populateSaleProductOptions(); // Re-populate product dropdown (no filter)
     });
 
     // --- TRANSACTION HISTORY & RECEIPT ---
@@ -442,14 +510,12 @@
         filteredSalesTableBody.innerHTML = '';
         let displayedSales = sales;
 
-        // Apply filters if dates are set
         if (currentFilterFromDate && currentFilterToDate) {
             const fromTimestamp = currentFilterFromDate.getTime();
             const toTimestamp = currentFilterToDate.getTime();
 
             displayedSales = sales.filter(s => {
                 const saleTimestamp = new Date(s.date).getTime();
-                // Pastikan transaksi berada dalam rentang tanggal yang dipilih (inklusif)
                 return saleTimestamp >= fromTimestamp && saleTimestamp <= toTimestamp;
             });
         }
@@ -461,7 +527,7 @@
             return;
         }
 
-        displayedSales.sort((a, b) => new Date(b.date) - new Date(a.date)); // Urutkan terbaru ke terlama
+        displayedSales.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         displayedSales.forEach(s => {
             const product = inventory.find(p => p.id === s.productId);
@@ -470,7 +536,7 @@
             const date = new Date(s.date);
             const dateString = date.toLocaleDateString('id-ID') + ' ' + date.toLocaleTimeString('id-ID');
             const tr = document.createElement('tr');
-            tr.dataset.saleId = s.id; // Untuk identifikasi saat klik "View Receipt"
+            tr.dataset.saleId = s.id;
 
             tr.innerHTML = `
                 <td data-label="Product Name">${escapeHtml(productName)}</td>
@@ -482,9 +548,8 @@
                     <button class="view-receipt primary" aria-label="View Receipt for ${escapeHtml(productName)}">View Receipt</button>
                 </td>
             `;
-            // Menambahkan event listener ke tombol "View Receipt"
             tr.querySelector('.view-receipt').addEventListener('click', () => {
-                lastTransactionDetails = s; // Set detail transaksi yang dipilih
+                lastTransactionDetails = s;
                 renderReceipt();
                 receiptOutput.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
@@ -498,14 +563,14 @@
 
         if (fromDateStr) {
             currentFilterFromDate = new Date(fromDateStr);
-            currentFilterFromDate.setHours(0, 0, 0, 0); // Atur ke awal hari
+            currentFilterFromDate.setHours(0, 0, 0, 0);
         } else {
             currentFilterFromDate = null;
         }
 
         if (toDateStr) {
             currentFilterToDate = new Date(toDateStr);
-            currentFilterToDate.setHours(23, 59, 59, 999); // Atur ke akhir hari
+            currentFilterToDate.setHours(23, 59, 59, 999);
         } else {
             currentFilterToDate = null;
         }
@@ -545,7 +610,6 @@
 
         let receiptHtml = '';
 
-        // Header Struk (Logo & Informasi Toko)
         receiptHtml += `<img src="${storeInfo.logoPath}" alt="Store Logo" class="store-logo">\n`;
         receiptHtml += `<div style="text-align: center;">\n`;
         receiptHtml += `  <strong>${storeInfo.name}</strong><br>\n`;
@@ -558,16 +622,13 @@
 
         receiptHtml += `<hr style="border: 0; border-top: 1px dashed #aaa; margin: 10px 0;">\n`;
 
-        // Baris Transaksi
+        const transactionIdShort = transaction.id.substring(1, 6).toUpperCase();
         receiptHtml += `<pre style="font-family: monospace; font-size: 1rem; white-space: pre-wrap; margin: 0; padding: 0;">`;
-        // Gunakan id transaksi yang unik (contoh TRST-ID_PENDEK)
-        const transactionIdShort = transaction.id.substring(1, 6).toUpperCase(); // Ambil 5 karakter dari ID
         receiptHtml += `TRST-${transactionIdShort} ${saleDate.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${saleDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n`;
         receiptHtml += `</pre>\n`;
 
         receiptHtml += `<hr style="border: 0; border-top: 1px dashed #aaa; margin: 10px 0;">\n`;
 
-        // Detail Item
         receiptHtml += `<pre style="font-family: monospace; font-size: 1rem; white-space: pre-wrap; margin: 0; padding: 0;">`;
         receiptHtml += `${padRight('Item', 20)} ${padLeft('Qty', 3)} ${padLeft('Harga', 8)} ${padLeft('Total', 10)}\n`;
         receiptHtml += `-------------------------------------------\n`;
@@ -582,7 +643,6 @@
 
         receiptHtml += `<hr style="border: 0; border-top: 1px dashed #aaa; margin: 10px 0;">\n`;
 
-        // Total, Pembayaran, Kembalian
         receiptHtml += `<pre style="font-family: monospace; font-size: 1rem; white-space: pre-wrap; margin: 0; padding: 0;">`;
         receiptHtml += `${padRight('Total', 32)} ${padLeft(formatCurrency(transaction.totalSale), 12)}\n`;
         receiptHtml += `${padRight('Pembayaran', 32)} ${padLeft(formatCurrency(transaction.customerPayment), 12)}\n`;
@@ -596,33 +656,42 @@
     }
 
     printReceiptButton.addEventListener('click', () => {
-        const printWindow = window.open('', '', 'width=400,height=600');
+        const printWindow = window.open('', '_blank', 'width=400,height=600,toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes');
+
+        if (!printWindow) {
+            alert('Could not open print window. Please allow pop-ups for this site.');
+            return;
+        }
+
+        const receiptContent = receiptOutput.innerHTML;
+
         printWindow.document.write(`
             <html>
             <head>
                 <title>Receipt</title>
                 <style>
-                    body { margin: 0; font-family: 'Poppins', sans-serif; }
+                    body { margin: 0; padding: 0.5rem; font-family: 'Poppins', sans-serif; -webkit-print-color-adjust: exact; color-adjust: exact; }
                     .receipt {
                         width: 100%;
                         box-sizing: border-box;
-                        padding: 1rem 1.5rem;
-                        font-family: monospace;
-                        font-size: 14px;
-                        line-height: 1.3;
+                        padding: 0;
+                        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+                        font-size: 13px;
+                        line-height: 1.2;
                         text-align: center;
+                        color: black;
                     }
                     .store-logo {
-                        max-width: 150px;
+                        max-width: 100px;
                         height: auto;
-                        margin-bottom: 10px;
+                        margin-bottom: 0.5rem;
                         display: block;
                         margin-left: auto;
                         margin-right: auto;
                     }
-                    hr { border: 0; border-top: 1px dashed #aaa; margin: 10px 0; }
+                    hr { border: 0; border-top: 1px dashed #777; margin: 0.5rem 0; }
                     pre {
-                        font-family: monospace;
+                        font-family: inherit;
                         font-size: inherit;
                         white-space: pre-wrap;
                         margin: 0;
@@ -635,20 +704,176 @@
             </head>
             <body>
                 <div class="receipt">
-                    ${receiptOutput.innerHTML}
+                    ${receiptContent}
                 </div>
+                <script>
+                    window.onload = function() {
+                        const images = document.images;
+                        let loadedCount = 0;
+                        if (images.length === 0) {
+                            window.print();
+                            window.close();
+                            return;
+                        }
+                        for (let i = 0; i < images.length; i++) {
+                            if (images[i].complete) {
+                                loadedCount++;
+                            } else {
+                                images[i].onload = function() {
+                                    loadedCount++;
+                                    if (loadedCount === images.length) {
+                                        setTimeout(() => {
+                                            window.print();
+                                            window.close();
+                                        }, 100);
+                                    }
+                                };
+                            }
+                        }
+                        if (loadedCount === images.length) {
+                            setTimeout(() => {
+                                window.print();
+                                window.close();
+                            }, 100);
+                        }
+                    };
+                </script>
             </body>
             </html>
         `);
         printWindow.document.close();
         printWindow.focus();
-        printWindow.print();
-        printWindow.close();
     });
 
-    // --- HPP CALCULATOR ---
+    // --- HPP CALCULATOR & PRICING TOOLS ---
 
-    function calculateHpp() {
+    function populateHppProductOptions() {
+        hppUnitForCalcSelect.innerHTML = '<option value="">-- Select Product --</option>';
+        hppUnitForMarginCalcSelect.innerHTML = '<option value="">-- Select Product --</option>';
+        inventory.filter(p => p.isActive).forEach(p => {
+            const optionHtml = `<option value="${p.id}">${escapeHtml(p.name)} (HPP: ${formatCurrency(p.cost)})</option>`;
+            hppUnitForCalcSelect.innerHTML += optionHtml;
+            hppUnitForMarginCalcSelect.innerHTML += optionHtml;
+        });
+    }
+
+    calculateRecommendedPriceBtn.addEventListener('click', () => {
+        const productId = hppUnitForCalcSelect.value;
+        const targetPercent = parseFloat(targetProfitPercentField.value);
+
+        if (!productId || isNaN(targetPercent) || targetPercent <= 0 || targetPercent >= 100) {
+            recommendedPriceSpan.textContent = "Invalid input.";
+            return;
+        }
+
+        const product = inventory.find(p => p.id === productId);
+        if (!product) {
+            recommendedPriceSpan.textContent = "Product not found.";
+            return;
+        }
+
+        const hppPerUnit = product.cost;
+        const targetProfitDecimal = targetPercent / 100;
+
+        if (targetProfitDecimal >= 1) {
+            recommendedPriceSpan.textContent = "Target profit must be less than 100%.";
+            return;
+        }
+
+        const recommendedPrice = hppPerUnit / (1 - targetProfitDecimal);
+        recommendedPriceSpan.textContent = formatCurrency(recommendedPrice);
+    });
+
+    hppUnitForMarginCalcSelect.addEventListener('change', () => {
+        const productId = hppUnitForMarginCalcSelect.value;
+        const product = inventory.find(p => p.id === productId);
+        if (product) {
+            displayCurrentSellingPriceField.value = formatCurrency(product.price);
+        } else {
+            displayCurrentSellingPriceField.value = "N/A";
+        }
+    });
+
+    calculateActualMarginBtn.addEventListener('click', () => {
+        const productId = hppUnitForMarginCalcSelect.value;
+        if (!productId) {
+            actualProfitMarginSpan.textContent = "N/A";
+            absoluteProfitPerUnitSpan.textContent = formatCurrency(0);
+            return;
+        }
+
+        const product = inventory.find(p => p.id === productId);
+        if (!product) {
+            actualProfitMarginSpan.textContent = "Product not found.";
+            absoluteProfitPerUnitSpan.textContent = formatCurrency(0);
+            return;
+        }
+
+        const hppPerUnit = product.cost;
+        const sellingPrice = product.price;
+
+        if (sellingPrice === 0) {
+            actualProfitMarginSpan.textContent = "N/A (Price is 0)";
+            absoluteProfitPerUnitSpan.textContent = formatCurrency(0);
+            return;
+        }
+
+        const absoluteProfit = sellingPrice - hppPerUnit;
+        const profitMargin = (absoluteProfit / sellingPrice) * 100;
+
+        actualProfitMarginSpan.textContent = `${profitMargin.toFixed(2)}%`;
+        absoluteProfitPerUnitSpan.textContent = formatCurrency(absoluteProfit);
+    });
+
+    calculateSalesNeededBtn.addEventListener('click', () => {
+        const targetProfit = parseFloat(targetAbsoluteProfitField.value);
+
+        if (isNaN(targetProfit) || targetProfit <= 0) {
+            salesNeededProductsSpan.textContent = "Invalid target profit.";
+            salesNeededRevenueSpan.textContent = "Invalid target profit.";
+            return;
+        }
+
+        let totalSalesRevenue = 0;
+        let totalHPP = 0;
+        let totalUnitsSold = 0;
+
+        sales.forEach(s => {
+            const product = inventory.find(p => p.id === s.productId);
+            if (product) {
+                totalSalesRevenue += product.price * s.quantity;
+                totalHPP += product.cost * s.quantity;
+                totalUnitsSold += s.quantity;
+            }
+        });
+
+        const overallAbsoluteProfit = totalSalesRevenue - totalHPP;
+
+        if (overallAbsoluteProfit <= 0 || totalUnitsSold === 0) {
+            salesNeededProductsSpan.textContent = "Cannot calculate (no profit data or no sales).";
+            salesNeededRevenueSpan.textContent = "Cannot calculate (no profit data or no sales).";
+            return;
+        }
+
+        const averageProfitPerUnit = overallAbsoluteProfit / totalUnitsSold;
+
+        if (averageProfitPerUnit <= 0) {
+            salesNeededProductsSpan.textContent = "Cannot calculate (average profit per unit is zero or negative).";
+            salesNeededRevenueSpan.textContent = "Cannot calculate (average profit per unit is zero or negative).";
+            return;
+        }
+
+        const estimatedUnitsNeeded = Math.ceil(targetProfit / averageProfitPerUnit);
+        const averageSellingPrice = totalSalesRevenue / totalUnitsSold;
+        const estimatedRevenueNeeded = estimatedUnitsNeeded * averageSellingPrice;
+
+        salesNeededProductsSpan.textContent = `${estimatedUnitsNeeded} units (estimated average)`;
+        salesNeededRevenueSpan.textContent = formatCurrency(estimatedRevenueNeeded) + " (estimated average)";
+    });
+
+    // --- PROFIT & LOSS CALCULATOR ---
+
+    function calculateHpp() { // This one calculates overall HPP from all sales
         let totalCost = 0;
         sales.forEach(s => {
             const product = inventory.find(p => p.id === s.productId);
@@ -662,10 +887,8 @@
 
     calculateHppBtn.addEventListener('click', () => {
         calculateHpp();
-        alert('Cost of Goods Sold (HPP) calculated.');
+        alert('Total Cost of Goods Sold (HPP) calculated.');
     });
-
-    // --- PROFIT & LOSS CALCULATOR ---
 
     function calculateProfitLoss() {
         let totalRevenue = 0;
@@ -682,7 +905,7 @@
 
         const profitLoss = totalRevenue - totalCost;
         pnlResultSpan.textContent = formatCurrency(profitLoss);
-        pnlResultSpan.style.color = profitLoss >= 0 ? '#28a745' : '#dc3545'; // Green for profit, red for loss
+        pnlResultSpan.style.color = profitLoss >= 0 ? '#28a745' : '#dc3545';
         return profitLoss;
     }
 
@@ -764,12 +987,12 @@
                     label: 'Daily Revenue (Rp)',
                     data: revenues,
                     fill: true,
-                    backgroundColor: 'rgba(74, 84, 225, 0.2)', // primary-color dengan opacity
-                    borderColor: '#4a54e1', // primary-color
+                    backgroundColor: 'rgba(0, 123, 255, 0.2)', // primary-color dengan opacity
+                    borderColor: '#007bff', // primary-color
                     tension: 0.3,
                     pointRadius: 5,
                     pointHoverRadius: 7,
-                    pointBackgroundColor: '#4a54e1'
+                    pointBackgroundColor: '#007bff'
                 }]
             },
             options: {
@@ -777,21 +1000,21 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        labels: { color: '#333d47', font: { weight: 600 } }
+                        labels: { color: '#343a40', font: { weight: 600 } }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            color: '#333d47',
+                            color: '#343a40',
                             callback: function(value) { return formatCurrency(value); }
                         },
-                        grid: { color: '#e0e5eb' }
+                        grid: { color: '#dee2e6' }
                     },
                     x: {
-                        ticks: { color: '#333d47' },
-                        grid: { color: '#e0e5eb' }
+                        ticks: { color: '#343a40' },
+                        grid: { color: '#dee2e6' }
                     }
                 }
             }
@@ -842,21 +1065,21 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        labels: { color: '#333d47', font: { weight: 600 } }
+                        labels: { color: '#343a40', font: { weight: 600 } }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            color: '#333d47',
+                            color: '#343a40',
                             callback: function(value) { return formatCurrency(value); }
                         },
-                        grid: { color: '#e0e5eb' }
+                        grid: { color: '#dee2e6' }
                     },
                     x: {
-                        ticks: { color: '#333d47' },
-                        grid: { color: '#e0e5eb' }
+                        ticks: { color: '#343a40' },
+                        grid: { color: '#dee2e6' }
                     }
                 }
             }
@@ -930,7 +1153,7 @@
                 plugins: {
                     legend: {
                         position: 'top',
-                        labels: { color: '#333d47', font: { weight: 600 } }
+                        labels: { color: '#343a40', font: { weight: 600 } }
                     },
                     tooltip: {
                         callbacks: {
@@ -983,86 +1206,74 @@
                 const workbook = XLSX.read(data, { type: 'array' });
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Read as array of arrays
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                if (jsonData.length === 0) {
-                    alert('Excel file is empty or has no recognizable data.');
+                if (jsonData.length < 2) { // Need at least 2 rows (header + 1 data)
+                    alert('Excel file is empty or has no data rows after headers.');
                     return;
                 }
 
                 const headers = jsonData[0];
-                const rows = jsonData.slice(1); // Data rows
+                const rows = jsonData.slice(1);
 
                 if (type === 'inventory') {
                     if (!confirm('Importing inventory will OVERWRITE your current active inventory data. Deactivated products will remain. Are you sure?')) {
                         return;
                     }
-                    const newInventory = rows.map(row => {
+                    const newInventoryItems = rows.map(row => {
                         const item = {};
-                        headers.forEach((header, i) => {
-                            item[header] = row[i];
-                        });
+                        headers.forEach((header, i) => { item[header] = row[i]; });
                         return {
-                            id: item.id || generateId(),
+                            id: String(item.id || generateId()),
                             name: String(item.name || '').trim(),
+                            category: String(item.category || '').trim(), // NEW: Read category
                             cost: parseFloat(item.cost || 0),
                             price: parseFloat(item.price || 0),
                             stock: parseInt(item.stock || 0),
                             isActive: item.isActive !== undefined ? Boolean(item.isActive) : true
                         };
-                    }).filter(item => item.name && !isNaN(item.cost) && !isNaN(item.price) && !isNaN(item.stock));
+                    }).filter(item => item.name && item.category && !isNaN(item.cost) && !isNaN(item.price) && !isNaN(item.stock));
 
-                    // Gabungkan produk baru dengan yang sudah ada (jika ada yang tidak aktif)
-                    // Atau, lebih simpel: timpa semua inventaris dengan data aktif baru.
-                    // Untuk skenario "overwrite active inventory":
-                    inventory = inventory.filter(p => !p.isActive); // Pertahankan yang tidak aktif
-                    inventory.push(...newInventory); // Tambahkan yang baru diimpor
-                    
-                    // Filter out duplicates based on name for new active products
-                    const uniqueActiveInventory = [];
-                    const seenNames = new Set(inventory.filter(p => !p.isActive).map(p => p.name.toLowerCase()));
+                    // Keep existing inactive products, and add new/updated active products
+                    const existingInactive = inventory.filter(p => !p.isActive);
+                    let combinedInventory = [...existingInactive];
+                    const seenActiveNames = new Set();
 
-                    inventory.forEach(p => {
-                        if (p.isActive && seenNames.has(p.name.toLowerCase())) {
-                            // Skip if active duplicate found, or handle as update
-                            // For simplicity, we just keep the first occurrence or skip duplicates
-                            // For true merging/updating, a more complex loop is needed.
-                        } else {
-                            uniqueActiveInventory.push(p);
-                            if (p.isActive) {
-                                seenNames.add(p.name.toLowerCase());
-                            }
+                    newInventoryItems.forEach(newItem => {
+                        // Cek apakah produk dengan nama yang sama sudah ada di `newInventoryItems` atau `existingInactive`
+                        if (!seenActiveNames.has(newItem.name.toLowerCase())) {
+                            combinedInventory.push(newItem);
+                            seenActiveNames.add(newItem.name.toLowerCase());
                         }
                     });
-                    inventory = uniqueActiveInventory;
 
-
+                    inventory = combinedInventory;
                     saveInventory();
                     renderInventoryTable();
                     populateSaleProductOptions();
-                    alert('Inventory imported successfully! Duplicates by name might be skipped/updated.');
+                    populateCategoryFilters(); // Refresh category filters
+                    populateHppProductOptions(); // Refresh HPP product selects
+                    alert('Inventory imported successfully! Existing active products with same names might be updated or skipped.');
 
                 } else if (type === 'sales') {
                     if (!confirm('Importing sales will ADD to your current sales data. Are you sure?')) {
                         return;
                     }
-                    const newSales = rows.map(row => {
+                    const newSalesItems = rows.map(row => {
                         const item = {};
-                        headers.forEach((header, i) => {
-                            item[header] = row[i];
-                        });
+                        headers.forEach((header, i) => { item[header] = row[i]; });
                         return {
-                            id: item.id || generateId(),
+                            id: String(item.id || generateId()),
                             productId: String(item.productId || ''),
                             quantity: parseInt(item.quantity || 0),
-                            date: item.date || new Date().toISOString(),
+                            date: item.date || new Date().toISOString(), // Use provided date or current
                             customerPayment: parseFloat(item.customerPayment || 0),
                             change: parseFloat(item.change || 0),
                             totalSale: parseFloat(item.totalSale || 0)
                         };
                     }).filter(item => item.productId && !isNaN(item.quantity) && item.quantity > 0);
 
-                    sales.push(...newSales);
+                    sales.push(...newSalesItems);
                     saveSales();
                     renderSalesTable();
                     renderFilteredSalesTable();
@@ -1070,9 +1281,8 @@
                 }
             } catch (error) {
                 console.error("Error importing Excel file:", error);
-                alert('Failed to import Excel file. Please check the file format and ensure headers match (e.g., "id", "name", "cost", "price", "stock", "isActive" for inventory).');
+                alert('Failed to import Excel file. Please check the file format and ensure headers match (e.g., "id", "name", "category", "cost", "price", "stock", "isActive" for inventory; "id", "productId", "quantity", "date", "customerPayment", "change", "totalSale" for sales).');
             } finally {
-                // Clear the file input after import to allow re-importing the same file
                 if (type === 'inventory') importInventoryFile.value = '';
                 if (type === 'sales') importSalesFile.value = '';
             }
@@ -1083,10 +1293,11 @@
     // --- EVENT LISTENERS FOR EXPORT/IMPORT ---
 
     exportInventoryBtn.addEventListener('click', () => {
-        const headers = ["id", "name", "cost", "price", "stock", "isActive"];
+        const headers = ["id", "name", "category", "cost", "price", "stock", "isActive"]; // NEW: Add category header
         const dataToExport = inventory.map(p => ({
             id: p.id,
             name: p.name,
+            category: p.category, // NEW: Include category
             cost: p.cost,
             price: p.price,
             stock: p.stock,
@@ -1109,7 +1320,7 @@
             return {
                 id: s.id,
                 productId: s.productId,
-                productName: product ? product.name : 'Product Not Found', // Ambil nama produk dari inventaris
+                productName: product ? product.name : 'Product Not Found',
                 quantity: s.quantity,
                 pricePerUnit: product ? product.price : 0,
                 totalSale: s.totalSale,
@@ -1134,32 +1345,34 @@
         loadInventory();
         loadSales();
         renderInventoryTable();
+        populateCategoryFilters(); // NEW: Populate category filters on load
         populateSaleProductOptions();
         renderSalesTable();
 
-        // Set initial date filters for Transaction History to today
         const today = new Date();
-        const formattedToday = today.toISOString().slice(0, 10); // YYYY-MM-DD
+        const formattedToday = today.toISOString().slice(0, 10);
         filterDateFrom.value = formattedToday;
         filterDateTo.value = formattedToday;
         currentFilterFromDate = new Date(formattedToday);
-        currentFilterFromDate.setHours(0, 0, 0, 0); // Set to start of day
+        currentFilterFromDate.setHours(0, 0, 0, 0);
         currentFilterToDate = new Date(formattedToday);
-        currentFilterToDate.setHours(23, 59, 59, 999); // Set to end of day
+        currentFilterToDate.setHours(23, 59, 59, 999);
 
-        renderFilteredSalesTable(); // Initial render for transaction history
+        renderFilteredSalesTable();
 
-        // Set lastTransactionDetails to the very last sale if any, for initial receipt display
         if (sales.length > 0) {
             lastTransactionDetails = sales[sales.length - 1];
         }
-        renderReceipt(); // Render initial receipt
+        renderReceipt();
+
+        populateHppProductOptions(); // Populate selects in HPP calculator
+        // Trigger initial update for actual margin display if a product is selected
+        hppUnitForMarginCalcSelect.dispatchEvent(new Event('change'));
 
         tabs.forEach(t => {
             t.addEventListener('click', () => switchTab(t.dataset.tab));
         });
 
-        // Run calculations/analysis charts on load
         calculateHpp();
         calculateProfitLoss();
         renderSalesAnalysis();
