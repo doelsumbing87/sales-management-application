@@ -13,7 +13,8 @@
     <nav>
         <button class="active" data-tab="inventory">Inventory</button>
         <button data-tab="sales">Sales</button>
-        <button data-tab="transaction-history">Transaction History</button> <button data-tab="hpp">HPP Calculator</button>
+        <button data-tab="transaction-history">Transaction History</button>
+        <button data-tab="hpp">HPP Calculator</button>
         <button data-tab="profit-loss">Profit & Loss</button>
         <button data-tab="analysis">Sales Analysis</button>
     </nav>
@@ -24,6 +25,10 @@
                 <input type="hidden" id="product-id" />
                 <label for="product-name">Product Name</label>
                 <input type="text" id="product-name" required maxlength="50" placeholder="Enter product name" />
+
+                <label for="product-category">Category</label>
+                <input type="text" id="product-category" required maxlength="30" placeholder="e.g., Minuman, Makanan, Snack" />
+
                 <label for="product-cost">Cost per Unit</label>
                 <input type="number" id="product-cost" min="0" step="0.01" required placeholder="0.00" />
                 <label for="product-price">Selling Price per Unit</label>
@@ -32,7 +37,8 @@
                 <input type="number" id="product-stock" min="0" step="1" required placeholder="0" />
                 <button type="submit" class="primary">Add / Update Product</button>
             </form>
-            <div class="action-buttons-group"> <button id="export-inventory-btn" class="primary">Export Inventory to Excel</button>
+            <div class="action-buttons-group">
+                <button id="export-inventory-btn" class="primary">Export Inventory to Excel</button>
                 <input type="file" id="import-inventory-file" accept=".xlsx, .xls" style="display:none;">
                 <button id="import-inventory-btn" class="primary" onclick="document.getElementById('import-inventory-file').click();">Import Inventory from Excel</button>
             </div>
@@ -41,7 +47,7 @@
                 <thead>
                     <tr>
                         <th>Name</th>
-                        <th>Cost (HPP)</th>
+                        <th>Category</th> <th>Cost (HPP)</th>
                         <th>Price</th>
                         <th>Stock</th>
                         <th>Actions</th>
@@ -54,7 +60,15 @@
 
         <section id="sales">
             <h2>Sales</h2>
-            <form id="sales-form">
+            <div class="filter-controls">
+                <label for="filter-sale-category">Filter by Category:</label>
+                <select id="filter-sale-category">
+                    <option value="">All Categories</option>
+                    </select>
+                <button id="apply-sales-category-filter" class="primary small-button">Apply Filter</button>
+                <button id="clear-sales-category-filter" class="primary small-button">Clear Filter</button>
+            </div>
+            <hr class="separator-line"> <form id="sales-form">
                 <label for="sale-product">Select Product</label>
                 <select id="sale-product" required>
                     <option value="">-- Select a product --</option>
@@ -67,7 +81,8 @@
 
                 <button type="submit" class="primary">Add Sale</button>
             </form>
-            <div class="action-buttons-group"> <button id="export-sales-btn" class="primary">Export Sales to Excel</button>
+            <div class="action-buttons-group">
+                <button id="export-sales-btn" class="primary">Export Sales to Excel</button>
                 <input type="file" id="import-sales-file" accept=".xlsx, .xls" style="display:none;">
                 <button id="import-sales-btn" class="primary" onclick="document.getElementById('import-sales-file').click();">Import Sales from Excel</button>
             </div>
@@ -88,7 +103,9 @@
             </table>
         </section>
 
-        <section id="transaction-history"> <h2>Transaction History & Receipt</h2> <div class="filter-controls">
+        <section id="transaction-history">
+            <h2>Transaction History & Receipt</h2>
+            <div class="filter-controls">
                 <label for="filter-date-from">Date From:</label>
                 <input type="date" id="filter-date-from">
                 <label for="filter-date-to">Date To:</label>
@@ -96,7 +113,9 @@
                 <button id="apply-date-filter" class="primary">Apply Filter</button>
                 <button id="clear-date-filter" class="primary">Clear Filter</button>
             </div>
-            <hr class="separator-line"> <h3>Filtered Transactions</h3>
+            <hr class="separator-line">
+
+            <h3>Filtered Transactions</h3>
             <table id="filtered-sales-table" aria-label="Filtered Sales Table">
                 <thead>
                     <tr>
@@ -112,7 +131,9 @@
                     </tbody>
             </table>
 
-            <hr class="separator-line"> <h3>Selected Transaction Receipt</h3>
+            <hr class="separator-line">
+
+            <h3>Selected Transaction Receipt</h3>
             <div id="receipt-output" class="receipt">
                 Please select a transaction to view its receipt.
             </div>
@@ -121,9 +142,47 @@
 
         <section id="hpp">
             <h2>Cost of Goods Sold (HPP) Calculator</h2>
-            <p>This calculates total Cost of Goods Sold based on sales made.</p>
-            <button id="calculate-hpp" class="primary">Calculate HPP</button>
-            <p><strong>Cost of Goods Sold:</strong> <span id="hpp-result">Rp0</span></p>
+            <p>This calculates total Cost of Goods Sold based on all recorded sales.</p>
+            <button id="calculate-hpp" class="primary">Calculate Total HPP</button>
+            <p><strong>Total Cost of Goods Sold:</strong> <span id="hpp-result">Rp0</span></p>
+
+            <hr class="separator-line">
+
+            <h3>Product Pricing & Profit Margin Tools</h3>
+            <p>Use these tools to help set product prices or analyze profitability per item.</p>
+
+            <div class="pricing-tool-group">
+                <div class="pricing-tool">
+                    <label for="hpp-unit-for-calc">Select Product for Pricing:</label>
+                    <select id="hpp-unit-for-calc" required>
+                        <option value="">-- Select Product --</option>
+                        </select>
+
+                    <label for="target-profit-percent">Target Profit Margin (%)</label>
+                    <input type="number" id="target-profit-percent" min="1" max="100" step="1" value="20" placeholder="e.g., 20" />
+                    <button id="calculate-recommended-price" class="primary small-button">Calculate Recommended Price</button>
+                    <p>Recommended Selling Price: <strong><span id="recommended-price">Rp0</span></strong></p>
+                </div>
+
+                <div class="pricing-tool">
+                    <label for="hpp-unit-for-margin-calc">Select Product for Margin Analysis:</label>
+                    <select id="hpp-unit-for-margin-calc" required>
+                        <option value="">-- Select Product --</option>
+                        </select>
+                    <label for="current-selling-price">Current Selling Price (from product data)</label>
+                    <input type="text" id="display-current-selling-price" readonly disabled />
+                    <button id="calculate-actual-margin" class="primary small-button">Calculate Actual Margin</button>
+                    <p>Actual Profit Margin: <strong><span id="actual-profit-margin">0%</span></strong></p>
+                    <p>Absolute Profit per Unit: <strong><span id="absolute-profit-per-unit">Rp0</span></strong></p>
+                </div>
+            </div>
+
+            <hr class="separator-line">
+            <h3>Target Profit Goal</h3>
+            <label for="target-absolute-profit">Target Absolute Profit (Rp)</label>
+            <input type="number" id="target-absolute-profit" min="0" step="1000" placeholder="e.g., 1000000" />
+            <button id="calculate-sales-needed" class="primary small-button">Calculate Sales Needed</button>
+            <p>To reach this target, you need to sell <strong><span id="sales-needed-products">-- products</span></strong> or generate <strong><span id="sales-needed-revenue">-- revenue</span></strong>.</p>
         </section>
 
         <section id="profit-loss">
