@@ -12,6 +12,7 @@
     --card-background: #ffffff; /* Latar belakang card/konten */
     --text-color: #343a40; /* Teks utama, abu-abu gelap */
     --text-light: #6c757d; /* Teks sekunder/placeholder */
+    --white: #ffffff; /* Explicitly define white */
     --border-color: #dee2e6; /* Warna border default */
     --shadow-light: rgba(0, 0, 0, 0.05); /* Bayangan sangat ringan */
     --shadow-medium: rgba(0, 0, 0, 0.1); /* Bayangan sedang */
@@ -82,7 +83,7 @@ a:hover {
 /* --- 3. Header & Navigasi --- */
 header {
     background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-    color: var(--white); /* Ini yang seharusnya membuat teks putih */
+    color: var(--white) !important; /* Force text color to white for header */
     padding: var(--padding-md) var(--padding-lg);
     text-align: center;
     font-weight: 700;
@@ -109,7 +110,7 @@ nav button {
     border: none;
     padding: var(--padding-md-btn);
     background-color: transparent;
-    color: var(--white); /* Ini yang seharusnya membuat teks putih */
+    color: var(--white) !important; /* Force text color to white for nav buttons */
     font-weight: 600;
     cursor: pointer;
     transition: background-color var(--transition-speed) var(--transition-ease), 
@@ -120,16 +121,16 @@ nav button {
     position: relative;
     overflow: hidden;
     will-change: transform, background-color;
-    display: flex; /* Untuk menempatkan ikon dan teks sejajar */
-    align-items: center; /* Vertikal rata tengah */
-    justify-content: center; /* Horisontal rata tengah */
-    gap: 0.5rem; /* Jarak antara ikon dan teks */
-    white-space: normal; /* Izinkan teks putus baris jika terlalu panjang */
-    text-align: center; /* Ratakan teks di tengah jika putus baris */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-align: center;
 }
 
 nav button i {
     font-size: 1.15rem;
+    color: inherit !important; /* Ensure icon color inherits from button (white) */
 }
 
 nav button::after {
@@ -338,8 +339,8 @@ tr:hover {
 }
 
 /* --- 9. Action Buttons (Edit/Delete/View) --- */
-button.edit, button.delete, button.view-receipt, /* Existing generic classes */
-button.edit-transaction, button.delete-transaction { /* Specific classes for history table */
+button.edit, button.delete, button.view-receipt,
+button.edit-transaction, button.delete-transaction {
     background: none;
     border: none;
     font-weight: 500;
@@ -354,7 +355,7 @@ button.edit-transaction, button.delete-transaction { /* Specific classes for his
     will-change: transform, background-color;
 }
 
-button.edit, button.edit-transaction { /* Apply primary color to all edit buttons */
+button.edit, button.edit-transaction {
     color: var(--primary-color);
 }
 
@@ -364,7 +365,7 @@ button.edit:hover, button.edit-transaction:hover {
     transform: translateY(-1px);
 }
 
-button.delete, button.delete-transaction { /* Apply danger color to all delete buttons */
+button.delete, button.delete-transaction {
     color: var(--danger-color);
 }
 
@@ -374,7 +375,7 @@ button.delete:hover, button.delete-transaction:hover {
     transform: translateY(-1px);
 }
 
-button.view-receipt { /* Style for View Receipt button (already styled as primary) */
+button.view-receipt {
     background-color: var(--primary-color);
     color: var(--white);
     padding: 0.4rem 0.8rem;
@@ -669,7 +670,8 @@ canvas:hover {
         padding: var(--padding-sm) var(--padding-md);
         font-size: 0.9rem;
     }
-    nav button i { /* Ikon di nav */
+    /* NEW: Adjust icon size for smaller nav buttons */
+    nav button i {
         font-size: 1rem;
     }
     main {
@@ -721,6 +723,8 @@ canvas:hover {
         font-size: 0.85rem;
         flex-direction: column; /* Ikon dan teks bertumpuk vertikal */
         gap: 0.3rem;
+        white-space: normal; /* Allow text to wrap for smaller buttons */
+        text-align: center; /* Center align text if it wraps */
     }
     nav button i {
         font-size: 1rem;
@@ -854,6 +858,9 @@ canvas:hover {
     nav button {
         font-size: 0.8rem;
         padding: 0.4rem;
+    }
+    nav button i {
+        font-size: 0.9rem;
     }
     main {
         margin: 0.5rem;
