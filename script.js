@@ -1,5 +1,5 @@
 (() => {
-    // Elements selection
+    // --- ELEMEN HTML ---
     const tabs = document.querySelectorAll('nav button');
     const sections = document.querySelectorAll('main section');
 
@@ -17,8 +17,9 @@
     const salesForm = document.getElementById('sales-form');
     const saleProductSelect = document.getElementById('sale-product');
     const saleQuantityField = document.getElementById('sale-quantity');
-    const salesTableBody = document.querySelector('#sales-table tbody');
+    const customerPaymentField = document.getElementById('customer-payment'); // Input pembayaran pelanggan
     const salesAlert = document.getElementById('sales-alert');
+    const salesTableBody = document.querySelector('#sales-table tbody');
 
     // Receipt elements
     const receiptOutput = document.getElementById('receipt-output');
@@ -37,54 +38,110 @@
     // Sales analysis elements
     const bestSellersTableBody = document.querySelector('#best-sellers-table tbody');
     const dailyRevenueChartCtx = document.getElementById('daily-revenue-chart').getContext('2d');
+    const productRevenueChartCtx = document.getElementById('product-revenue-chart').getContext('2d');     // Context untuk diagram batang baru
+    const productDistributionChartCtx = document.getElementById('product-distribution-chart').getContext('2d'); // Context untuk diagram lingkaran baru
 
-    // Data keys in localStorage
+    // --- DATA & STORAGE ---
     const STORAGE_KEYS = {
         INVENTORY: 'salesApp_inventory',
         SALES: 'salesApp_sales'
     };
 
-    // Data arrays
     let inventory = [];
     let sales = [];
+    let lastTransactionDetails = null; // Menyimpan detail transaksi terakhir untuk struk
 
-    // Chart instance
+    // --- CHART INSTANCES ---
     let dailyRevenueChart;
+    let productRevenueChart;
+    let productDistributionChart;
 
-    // Utility Functions
+    // --- KONFIGURASI TOKO (Untuk Struk) ---
+    const storeInfo = {
+        name: "RM. AMPERA ABBEEY",
+        address1: "Jl. Lintas Sumatera, Candimas, Kec.",
+        address2: "Abung Sel., Kabupaten Lampung Utara,",
+        address3: "Lampung 34511, Indonesia",
+        phone: "+62 895 6096 10780",
+        website: "https://rm-ampera-abbeey.vercel.app",
+        logoPath: "logo-abbey.png" // Pastikan gambar ini ada di folder root proyek
+    };
+
+    // --- FUNGSI UTILITY ---
+
     function saveInventory() {
         localStorage.setItem(STORAGE_KEYS.INVENTORY, JSON.stringify(inventory));
     }
+
     function saveSales() {
         localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
     }
+
     function loadInventory() {
         const saved = localStorage.getItem(STORAGE_KEYS.INVENTORY);
         inventory = saved ? JSON.parse(saved) : [];
     }
+
     function loadSales() {
         const saved = localStorage.getItem(STORAGE_KEYS.SALES);
         sales = saved ? JSON.parse(saved) : [];
     }
+
+    // Mengubah format mata uang ke Rupiah Indonesia
     function formatCurrency(value) {
-        return value.toFixed(2);
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            minimumFractionDigits: 0, // Hilangkan desimal jika nilai bulat
+            maximumFractionDigits: 0
+        }).format(value);
     }
+
     function generateId() {
         return '_' + Math.random().toString(36).substr(2, 9);
     }
+
     function isPositiveNumber(value) {
-        return !isNaN(value) && value >= 0; // Changed to >= 0 for cost/price
+        return !isNaN(value) && value >= 0;
     }
+
     function clearInventoryAlert() {
         inventoryAlert.style.display = 'none';
         inventoryAlert.textContent = '';
     }
+
     function clearSalesAlert() {
         salesAlert.style.display = 'none';
         salesAlert.textContent = '';
     }
 
-    // UI & Logic Functions
+    // Helper untuk escape HTML (mencegah XSS)
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    // Helper untuk padding teks
+    function padRight(str, length) {
+        str = String(str);
+        while (str.length < length) str += ' ';
+        return str.substring(0, length); // Pastikan tidak melebihi panjang
+    }
+
+    function padLeft(str, length) {
+        str = String(str);
+        while (str.length < length) str = ' ' + str;
+        return str.substring(0, length); // Pastikan tidak melebihi panjang
+    }
+
+    // --- FUNGSI UI & LOGIC ---
+
     function switchTab(tabName) {
         tabs.forEach(t => {
             t.classList.toggle('active', t.dataset.tab === tabName);
@@ -92,6 +149,8 @@
         sections.forEach(s => {
             s.classList.toggle('active', s.id === tabName);
         });
+
+        // Render atau update konten saat tab aktif
         if (tabName === 'inventory') renderInventoryTable();
         if (tabName === 'sales') {
             populateSaleProductOptions();
@@ -101,7 +160,8 @@
         if (tabName === 'analysis') renderSalesAnalysis();
     }
 
-    // INVENTORY MANAGEMENT
+    // --- INVENTORY MANAGEMENT ---
+
     function renderInventoryTable() {
         inventoryTableBody.innerHTML = '';
         if (inventory.length === 0) {
@@ -114,8 +174,8 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${escapeHtml(p.name)}</td>
-                <td>$${formatCurrency(p.cost)}</td>
-                <td>$${formatCurrency(p.price)}</td>
+                <td>${formatCurrency(p.cost)}</td>
+                <td>${formatCurrency(p.price)}</td>
                 <td>${p.stock}</td>
                 <td>
                     <button class="edit" aria-label="Edit ${escapeHtml(p.name)}">Edit</button>
@@ -129,6 +189,7 @@
             inventoryTableBody.appendChild(tr);
         });
     }
+
     function editProduct(id) {
         clearInventoryAlert();
         const product = inventory.find(p => p.id === id);
@@ -138,15 +199,14 @@
         productCostField.value = product.cost;
         productPriceField.value = product.price;
         productStockField.value = product.stock;
-        // Optional: Scroll to the form if it's out of view
         inventoryForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+
     function deleteProduct(id) {
         clearInventoryAlert();
         const product = inventory.find(p => p.id === id);
         if (!product) return;
 
-        // Check if there are any sales recorded for this product
         const hasSales = sales.some(s => s.productId === id);
 
         if (hasSales) {
@@ -160,7 +220,7 @@
             saveInventory();
             renderInventoryTable();
             clearInventoryForm();
-            populateSaleProductOptions(); // Update sales dropdown after deletion
+            populateSaleProductOptions();
             alert('Product deleted successfully.');
         }
     }
@@ -202,7 +262,6 @@
             inventoryAlert.textContent = 'Stock quantity cannot be negative and must be a whole number.';
             return;
         }
-        // Check duplicate name for new product, except itself on update
         const nameConflict = inventory.find(p => p.name.toLowerCase() === name.toLowerCase() && p.id !== id);
         if (nameConflict) {
             inventoryAlert.style.display = 'block';
@@ -210,7 +269,6 @@
             return;
         }
 
-        // Add or update product
         const index = inventory.findIndex(p => p.id === id);
         if (index >= 0) {
             inventory[index] = { id, name, cost, price, stock };
@@ -220,21 +278,25 @@
         saveInventory();
         renderInventoryTable();
         clearInventoryForm();
-        populateSaleProductOptions(); // Update sales dropdown after inventory changes
+        populateSaleProductOptions();
         alert('Product added/updated successfully.');
     });
 
-    // SALES MANAGEMENT
+    // --- SALES MANAGEMENT ---
+
     function populateSaleProductOptions() {
         saleProductSelect.innerHTML = '';
         if (inventory.length === 0) {
             saleProductSelect.innerHTML = '<option value="">No products available</option>';
-            saleProductSelect.disabled = true; // Disable select if no products
+            saleProductSelect.disabled = true;
             saleQuantityField.disabled = true;
+            customerPaymentField.disabled = true; // Disable payment field
             return;
         }
         saleProductSelect.disabled = false;
         saleQuantityField.disabled = false;
+        customerPaymentField.disabled = false; // Enable payment field
+
         saleProductSelect.innerHTML = '<option value="">-- Select a product --</option>' + inventory.map(p => {
             return `<option value="${p.id}">${escapeHtml(p.name)} (Stock: ${p.stock})</option>`;
         }).join('');
@@ -247,21 +309,20 @@
             printReceiptButton.disabled = true;
             return;
         }
-        // Sort sales by date descending to show most recent first
         const sortedSales = [...sales].sort((a, b) => new Date(b.date) - new Date(a.date));
 
         sortedSales.forEach(s => {
             const product = inventory.find(p => p.id === s.productId);
-            const productName = product ? product.name : 'Product Not Found'; // Handle deleted products
+            const productName = product ? product.name : 'Product Not Found';
             const pricePerUnit = product ? product.price : 0;
             const date = new Date(s.date);
-            const dateString = date.toLocaleDateString('id-ID') + ' ' + date.toLocaleTimeString('id-ID'); // Format for Indonesia
+            const dateString = date.toLocaleDateString('id-ID') + ' ' + date.toLocaleTimeString('id-ID');
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${escapeHtml(productName)}</td>
                 <td>${s.quantity}</td>
-                <td>$${formatCurrency(pricePerUnit)}</td>
-                <td>$${formatCurrency(s.quantity * pricePerUnit)}</td>
+                <td>${formatCurrency(pricePerUnit)}</td>
+                <td>${formatCurrency(s.quantity * pricePerUnit)}</td>
                 <td>${dateString}</td>
             `;
             salesTableBody.appendChild(tr);
@@ -274,6 +335,7 @@
         clearSalesAlert();
         const productId = saleProductSelect.value;
         const quantity = parseInt(saleQuantityField.value);
+        let customerPayment = parseFloat(customerPaymentField.value); // Ambil dari input
 
         if (!productId) {
             salesAlert.style.display = 'block';
@@ -298,69 +360,172 @@
             return;
         }
 
+        const saleTotal = product.price * quantity;
+
+        if (isNaN(customerPayment) || customerPayment < 0) {
+             salesAlert.style.display = 'block';
+             salesAlert.textContent = 'Customer payment must be a non-negative number.';
+             return;
+        }
+
+        if (customerPayment < saleTotal) {
+            salesAlert.style.display = 'block';
+            salesAlert.textContent = `Insufficient payment. Customer needs to pay ${formatCurrency(saleTotal)}.`;
+            return;
+        }
+
+        const change = customerPayment - saleTotal;
+
         // Update stock
         product.stock -= quantity;
 
         // Record sale
-        sales.push({
+        const newSale = {
             id: generateId(),
             productId: productId,
             quantity: quantity,
-            date: new Date().toISOString()
-        });
+            date: new Date().toISOString(),
+            customerPayment: customerPayment,
+            change: change,
+            totalSale: saleTotal
+        };
+        sales.push(newSale);
 
         saveInventory();
         saveSales();
-        renderInventoryTable(); // Update inventory table to reflect stock change
-        populateSaleProductOptions(); // Update stock display in sales dropdown
+        renderInventoryTable();
+        populateSaleProductOptions();
         renderSalesTable();
-        renderReceipt();
-        alert('Sale recorded successfully.');
+
+        lastTransactionDetails = newSale; // Simpan detail untuk struk
+        renderReceipt(); // Render struk setelah penjualan baru
+
+        alert('Sale recorded successfully!');
         salesForm.reset();
+        customerPaymentField.value = ''; // Bersihkan input pembayaran
     });
 
-    // RECEIPT PRINTING
+    // --- RECEIPT PRINTING ---
+
     function renderReceipt() {
-        if (sales.length === 0) {
+        receiptOutput.innerHTML = ''; // Bersihkan konten sebelumnya
+
+        // Gunakan lastTransactionDetails jika ada, jika tidak, coba ambil penjualan terakhir dari array sales
+        const transaction = lastTransactionDetails || (sales.length > 0 ? sales[sales.length - 1] : null);
+
+        if (!transaction) {
             receiptOutput.textContent = 'No sales yet.';
             printReceiptButton.disabled = true;
             return;
         }
         printReceiptButton.disabled = false;
 
-        // Build a receipt for the last sale
-        const lastSale = sales[sales.length - 1]; // Get the very last recorded sale
-        const saleDate = new Date(lastSale.date);
-        const product = inventory.find(p => p.id === lastSale.productId);
-        const name = product ? product.name : 'Unknown Product';
-        const price = product ? product.price : 0;
-        const quantity = lastSale.quantity;
-        const total = price * quantity;
+        const saleDate = new Date(transaction.date);
+        const product = inventory.find(p => p.id === transaction.productId);
 
-        let receiptText = '';
-        receiptText += '********** RECEIPT **********\n';
-        receiptText += `Date: ${saleDate.toLocaleDateString('id-ID')} ${saleDate.toLocaleTimeString('id-ID')}\n`;
-        receiptText += '-----------------------------\n';
-        receiptText += `Item              Qty   Price   Total\n`;
-        receiptText += '-----------------------------\n';
-        receiptText += `${padRight(name, 18)} ${padLeft(quantity, 3)}  $${padLeft(formatCurrency(price), 6)}  $${padLeft(formatCurrency(total), 6)}\n`;
-        receiptText += '-----------------------------\n';
-        receiptText += `TOTAL:                                $${formatCurrency(total)}\n`;
-        receiptText += '*****************************\n';
+        let receiptHtml = '';
 
-        receiptOutput.textContent = receiptText;
+        // Header Struk (Logo & Informasi Toko)
+        receiptHtml += `<img src="${storeInfo.logoPath}" alt="Store Logo" class="store-logo">\n`;
+        receiptHtml += `<div style="text-align: center;">\n`;
+        receiptHtml += `  <strong>${storeInfo.name}</strong><br>\n`;
+        receiptHtml += `  ${storeInfo.address1}<br>\n`;
+        receiptHtml += `  ${storeInfo.address2}<br>\n`;
+        receiptHtml += `  ${storeInfo.address3}<br>\n`;
+        receiptHtml += `  ${storeInfo.phone}<br>\n`;
+        receiptHtml += `  ${storeInfo.website}<br>\n`;
+        receiptHtml += `</div>\n`;
+
+        receiptHtml += `<hr style="border: 0; border-top: 1px dashed #aaa; margin: 10px 0;">\n`;
+
+        // Baris Transaksi
+        receiptHtml += `<pre style="font-family: monospace; font-size: 1rem; white-space: pre-wrap; margin: 0; padding: 0;">`;
+        receiptHtml += `TRST-${transaction.id.substring(1, 6).toUpperCase()} ${saleDate.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${saleDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n`;
+        receiptHtml += `</pre>\n`;
+
+        receiptHtml += `<hr style="border: 0; border-top: 1px dashed #aaa; margin: 10px 0;">\n`;
+
+        // Detail Item
+        receiptHtml += `<pre style="font-family: monospace; font-size: 1rem; white-space: pre-wrap; margin: 0; padding: 0;">`;
+        receiptHtml += `${padRight('Item', 20)} ${padLeft('Qty', 3)} ${padLeft('Harga', 8)} ${padLeft('Total', 10)}\n`; // Header kolom
+        receiptHtml += `-------------------------------------------\n`; // Garis pemisah kolom
+
+        const productName = product ? product.name : 'Produk Tidak Ditemukan';
+        const pricePerUnit = product ? product.price : 0;
+        const quantity = transaction.quantity;
+        const itemTotal = transaction.totalSale;
+
+        receiptHtml += `${padRight(productName, 20)} ${padLeft(quantity.toString(), 3)} ${padLeft(formatCurrency(pricePerUnit), 8)} ${padLeft(formatCurrency(itemTotal), 10)}\n`;
+        receiptHtml += `</pre>\n`;
+
+        receiptHtml += `<hr style="border: 0; border-top: 1px dashed #aaa; margin: 10px 0;">\n`;
+
+        // Total, Pembayaran, Kembalian
+        receiptHtml += `<pre style="font-family: monospace; font-size: 1rem; white-space: pre-wrap; margin: 0; padding: 0;">`;
+        receiptHtml += `${padRight('Total', 32)} ${padLeft(formatCurrency(transaction.totalSale), 12)}\n`; // Lebar 32 untuk label, 12 untuk nilai
+        receiptHtml += `${padRight('Pembayaran', 32)} ${padLeft(formatCurrency(transaction.customerPayment), 12)}\n`;
+        receiptHtml += `${padRight('Kembalian', 32)} ${padLeft(formatCurrency(transaction.change), 12)}\n`;
+        receiptHtml += `</pre>\n`;
+
+        receiptHtml += `<hr style="border: 0; border-top: 1px dashed #aaa; margin: 10px 0;">\n`;
+        receiptHtml += `<div style="text-align: center; font-weight: bold; margin-top: 10px;">Terimakasih Atas Kunjungannya!</div>\n`;
+
+        receiptOutput.innerHTML = receiptHtml;
     }
 
     printReceiptButton.addEventListener('click', () => {
         const printWindow = window.open('', '', 'width=400,height=600');
-        printWindow.document.write('<pre style="font-family: monospace; font-size: 16px;">' + receiptOutput.textContent.replace(/</g, '&lt;').replace(/>/g,'&gt;') + '</pre>');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Receipt</title>
+                <style>
+                    body { margin: 0; font-family: 'Poppins', sans-serif; }
+                    .receipt {
+                        width: 100%;
+                        box-sizing: border-box;
+                        padding: 1rem 1.5rem;
+                        font-family: monospace; /* Tetap monospace untuk detail item */
+                        font-size: 14px; /* Sedikit lebih kecil untuk print */
+                        line-height: 1.3;
+                        text-align: center; /* Untuk header */
+                    }
+                    .store-logo {
+                        max-width: 150px;
+                        height: auto;
+                        margin-bottom: 10px;
+                        display: block;
+                        margin-left: auto;
+                        margin-right: auto;
+                    }
+                    hr { border: 0; border-top: 1px dashed #aaa; margin: 10px 0; }
+                    pre {
+                        font-family: monospace;
+                        font-size: inherit; /* Inherit dari .receipt */
+                        white-space: pre-wrap;
+                        margin: 0;
+                        padding: 0;
+                        text-align: left; /* Teks item ke kiri */
+                    }
+                    div { text-align: center; } /* Umumnya div di tengah */
+                    strong { font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="receipt">
+                    ${receiptOutput.innerHTML}
+                </div>
+            </body>
+            </html>
+        `);
         printWindow.document.close();
         printWindow.focus();
         printWindow.print();
         printWindow.close();
     });
 
-    // HPP CALCULATOR
+    // --- HPP CALCULATOR ---
+
     function calculateHpp() {
         let totalCost = 0;
         sales.forEach(s => {
@@ -378,7 +543,8 @@
         alert('Cost of Goods Sold (HPP) calculated.');
     });
 
-    // PROFIT & LOSS CALCULATOR
+    // --- PROFIT & LOSS CALCULATOR ---
+
     function calculateProfitLoss() {
         let totalRevenue = 0;
         sales.forEach(s => {
@@ -387,14 +553,14 @@
                 totalRevenue += product.price * s.quantity;
             }
         });
-        const totalCost = calculateHpp(); // Use the HPP function to get total cost
+        const totalCost = calculateHpp();
 
         pnlSalesSpan.textContent = formatCurrency(totalRevenue);
         pnlCostSpan.textContent = formatCurrency(totalCost);
 
         const profitLoss = totalRevenue - totalCost;
         pnlResultSpan.textContent = formatCurrency(profitLoss);
-        pnlResultSpan.style.color = profitLoss >= 0 ? '#2e7d32' : '#c62828'; // Green for profit, red for loss
+        pnlResultSpan.style.color = profitLoss >= 0 ? '#2e7d32' : '#c62828';
         return profitLoss;
     }
 
@@ -403,10 +569,13 @@
         alert('Profit or Loss calculated.');
     });
 
-    // SALES ANALYSIS
+    // --- SALES ANALYSIS ---
+
     function renderSalesAnalysis() {
         renderBestSellersTable();
         renderDailyRevenueChart();
+        renderProductRevenueChart();
+        renderProductDistributionChart();
     }
 
     function renderBestSellersTable() {
@@ -416,8 +585,7 @@
             return;
         }
 
-        // Aggregate quantities sold per product
-        const productSalesMap = {};
+        const productSalesMap = {}; // Mengagregasi kuantitas terjual per produk
         sales.forEach(s => {
             if (!productSalesMap[s.productId]) {
                 productSalesMap[s.productId] = 0;
@@ -425,16 +593,16 @@
             productSalesMap[s.productId] += s.quantity;
         });
 
-        // Convert to array and sort descending by quantity
         const productSales = Object.entries(productSalesMap)
-            .map(([pid, qty]) => ({productId: pid, quantity: qty}))
-            .sort((a,b) => b.quantity - a.quantity);
+            .map(([pid, qty]) => {
+                const product = inventory.find(p => p.id === pid);
+                return { productId: pid, quantity: qty, name: product ? product.name : 'Unknown Product' };
+            })
+            .sort((a, b) => b.quantity - a.quantity); // Urutkan berdasarkan kuantitas
 
         productSales.forEach(ps => {
-            const product = inventory.find(p => p.id === ps.productId);
-            const productName = product ? product.name : 'Unknown Product';
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${escapeHtml(productName)}</td><td>${ps.quantity}</td>`;
+            tr.innerHTML = `<td>${escapeHtml(ps.name)}</td><td>${ps.quantity}</td>`;
             bestSellersTableBody.appendChild(tr);
         });
     }
@@ -442,28 +610,24 @@
     function renderDailyRevenueChart() {
         if (dailyRevenueChart) {
             dailyRevenueChart.destroy();
-            dailyRevenueChart = null;
         }
 
         if (sales.length === 0) {
-            // Clear canvas if no sales data
-            dailyRevenueChartCtx.clearRect(0,0,dailyRevenueChartCtx.canvas.width,dailyRevenueChartCtx.canvas.height);
+            dailyRevenueChartCtx.clearRect(0, 0, dailyRevenueChartCtx.canvas.width, dailyRevenueChartCtx.canvas.height);
             return;
         }
 
         const revenueByDate = {};
         sales.forEach(s => {
             const product = inventory.find(p => p.id === s.productId);
-            if (!product) return; // Skip if product not found
+            if (!product) return;
 
             const saleDate = new Date(s.date);
-            // Key by YYYY-MM-DD
-            const ymd = saleDate.toISOString().slice(0,10);
+            const ymd = saleDate.toISOString().slice(0, 10); // Format YYYY-MM-DD
             if (!revenueByDate[ymd]) revenueByDate[ymd] = 0;
             revenueByDate[ymd] += product.price * s.quantity;
         });
 
-        // Get sorted dates and corresponding revenues
         const dates = Object.keys(revenueByDate).sort();
         const revenues = dates.map(d => parseFloat(revenueByDate[d].toFixed(2)));
 
@@ -472,7 +636,7 @@
             data: {
                 labels: dates,
                 datasets: [{
-                    label: 'Daily Revenue ($)',
+                    label: 'Daily Revenue (Rp)',
                     data: revenues,
                     fill: true,
                     backgroundColor: 'rgba(63,81,181,0.2)',
@@ -485,70 +649,200 @@
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, // Allow canvas to adjust height
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        labels: {color: '#3f51b5', font: {weight: 600}}
+                        labels: { color: '#3f51b5', font: { weight: 600 } }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        ticks: {color: '#3f51b5'},
-                        grid: {color: '#e0e0e0'}
+                        ticks: {
+                            color: '#3f51b5',
+                            callback: function(value) { return formatCurrency(value); } // Format Y-axis ticks
+                        },
+                        grid: { color: '#e0e0e0' }
                     },
                     x: {
-                        ticks: {color: '#3f51b5'},
-                        grid: {color: '#e0e0e0'}
+                        ticks: { color: '#3f51b5' },
+                        grid: { color: '#e0e0e0' }
                     }
                 }
             }
         });
     }
 
-    // Helpers
-    function escapeHtml(text) {
-        // Function to prevent XSS by escaping HTML characters
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    function renderProductRevenueChart() {
+        if (productRevenueChart) {
+            productRevenueChart.destroy();
+        }
+
+        if (sales.length === 0) {
+            productRevenueChartCtx.clearRect(0, 0, productRevenueChartCtx.canvas.width, productRevenueChartCtx.canvas.height);
+            return;
+        }
+
+        const revenueByProduct = {};
+        sales.forEach(sale => {
+            const product = inventory.find(p => p.id === sale.productId);
+            if (product) {
+                if (!revenueByProduct[product.name]) {
+                    revenueByProduct[product.name] = 0;
+                }
+                revenueByProduct[product.name] += product.price * sale.quantity;
+            }
+        });
+
+        const sortedProducts = Object.entries(revenueByProduct)
+            .sort(([, revenueA], [, revenueB]) => revenueB - revenueA); // Urutkan berdasarkan pendapatan
+
+        const labels = sortedProducts.map(([name]) => name);
+        const data = sortedProducts.map(([, revenue]) => parseFloat(revenue.toFixed(2)));
+
+        productRevenueChart = new Chart(productRevenueChartCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Revenue (Rp)',
+                    data: data,
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: '#333', font: { weight: 600 } }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#333',
+                            callback: function(value) { return formatCurrency(value); }
+                        },
+                        grid: { color: '#e0e0e0' }
+                    },
+                    x: {
+                        ticks: { color: '#333' },
+                        grid: { color: '#e0e0e0'}
+                    }
+                }
+            }
+        });
     }
 
-    function padRight(str, length) {
-        str = String(str);
-        while (str.length < length) str += ' ';
-        return str;
+    function renderProductDistributionChart() {
+        if (productDistributionChart) {
+            productDistributionChart.destroy();
+        }
+
+        if (sales.length === 0) {
+            productDistributionChartCtx.clearRect(0, 0, productDistributionChartCtx.canvas.width, productDistributionChartCtx.canvas.height);
+            return;
+        }
+
+        const revenueByProduct = {};
+        sales.forEach(sale => {
+            const product = inventory.find(p => p.id === sale.productId);
+            if (product) {
+                const currentRevenue = product.price * sale.quantity;
+                if (!revenueByProduct[product.name]) {
+                    revenueByProduct[product.name] = 0;
+                }
+                revenueByProduct[product.name] += currentRevenue;
+            }
+        });
+
+        const labels = Object.keys(revenueByProduct);
+        const data = labels.map(name => parseFloat(revenueByProduct[name].toFixed(2)));
+
+        const backgroundColors = [
+            'rgba(255, 99, 132, 0.7)', // Merah
+            'rgba(54, 162, 235, 0.7)', // Biru
+            'rgba(255, 206, 86, 0.7)', // Kuning
+            'rgba(75, 192, 192, 0.7)', // Hijau Teal
+            'rgba(153, 102, 255, 0.7)',// Ungu
+            'rgba(255, 159, 64, 0.7)', // Oranye
+            'rgba(199, 199, 199, 0.7)',// Abu-abu
+            'rgba(83, 102, 255, 0.7)', // Biru muda
+            'rgba(231, 233, 64, 0.7)', // Olive
+            'rgba(255, 0, 0, 0.7)'     // Merah terang
+        ];
+        const borderColors = [
+            'rgba(255, 99, 132, 1)',
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)',
+            'rgba(199, 199, 199, 1)',
+            'rgba(83, 102, 255, 1)',
+            'rgba(231, 233, 64, 1)',
+            'rgba(255, 0, 0, 1)'
+        ];
+
+        productDistributionChart = new Chart(productDistributionChartCtx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: backgroundColors.slice(0, labels.length),
+                    borderColor: borderColors.slice(0, labels.length),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: '#333', font: { weight: 600 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    const total = context.dataset.data.reduce((sum, current) => sum + current, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(2) + '%';
+                                    label += formatCurrency(context.parsed) + ' (' + percentage + ')';
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
-    function padLeft(str, length) {
-        str = String(str);
-        while (str.length < length) str = ' ' + str;
-        return str;
-    }
+    // --- INISIALISASI ---
 
-    // Initialization
     function init() {
         loadInventory();
         loadSales();
         renderInventoryTable();
         populateSaleProductOptions();
         renderSalesTable();
-        renderReceipt();
-        // Add tab switching listeners
+        renderReceipt(); // Tampilkan struk terakhir saat aplikasi dimuat
+
         tabs.forEach(t => {
             t.addEventListener('click', () => switchTab(t.dataset.tab));
         });
-
-        // Ensure calculations are run once when respective tabs are opened for the first time
-        // or add listeners to the buttons for manual recalculation.
-        // For simplicity, we'll keep the button clicks for manual calculation.
     }
 
-    // Run initialization when the DOM is fully loaded
+    // Jalankan inisialisasi ketika DOM sepenuhnya dimuat
     document.addEventListener('DOMContentLoaded', init);
 })();
