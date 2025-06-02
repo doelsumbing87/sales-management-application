@@ -17,8 +17,10 @@
     --shadow-medium: rgba(0, 0, 0, 0.1); /* Bayangan sedang */
     --shadow-strong: rgba(0, 0, 0, 0.2); /* Bayangan kuat (misal: hover) */
     --danger-color: #dc3545; /* Merah untuk error/delete */
-    --danger-light: rgba(220, 53, 69, 0.1); /* Latar belakang alert */
+    --danger-light: rgba(220, 53, 69, 0.1); /* Latar belakang alert danger */
     --warning-color: #ffc107; /* Kuning untuk warning */
+    --warning-light: rgba(255, 193, 7, 0.1); /* Latar belakang alert warning */
+    --success-light: rgba(40, 167, 69, 0.1); /* Latar belakang alert success */
 
     /* Spacing & Ukuran */
     --padding-sm: 0.75rem;
@@ -278,7 +280,7 @@ button.primary:active {
 button.primary.small-button {
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
-    margin-top: var(--margin-md); /* Default margin for small buttons */
+    margin-top: var(--margin-md);
     box-shadow: 0 0.125rem 0.25rem rgba(0, 123, 255, 0.1);
 }
 button.primary.small-button:hover {
@@ -333,7 +335,7 @@ button.edit, button.delete, button.view-receipt {
     border-radius: var(--border-radius-sm);
     transition: background-color var(--transition-speed) var(--transition-ease), 
                 color var(--transition-speed) var(--transition-ease),
-                transform var(--transition-fast) var(--transition-ease); /* Added transform */
+                transform var(--transition-fast) var(--transition-ease);
     font-size: 0.85rem;
     will-change: transform, background-color;
 }
@@ -343,7 +345,7 @@ button.edit {
 }
 
 button.edit:hover {
-    background-color: var(--primary-light); /* Latar belakang yang lebih terang saat hover */
+    background-color: var(--primary-light);
     color: var(--primary-dark);
     transform: translateY(-1px);
 }
@@ -497,29 +499,62 @@ canvas {
     box-shadow: 0 0.25rem 0.75rem var(--shadow-light);
     padding: var(--padding-md);
     box-sizing: border-box;
-    transition: box-shadow var(--transition-speed) var(--transition-ease); /* Added transition */
+    transition: box-shadow var(--transition-speed) var(--transition-ease);
 }
 canvas:hover {
-    box-shadow: 0 0.5rem 1.5rem var(--shadow-medium); /* Subtle hover effect */
+    box-shadow: 0 0.5rem 1.5rem var(--shadow-medium);
 }
 
 
+/* --- Alert Styles --- */
 .alert {
     padding: var(--padding-sm);
-    background-color: var(--danger-light);
-    color: var(--danger-color);
-    border: 1px solid var(--danger-color);
     border-radius: var(--border-radius-sm);
     margin-top: var(--margin-md);
     font-weight: 600;
     text-align: center;
     box-shadow: 0 0.125rem 0.25rem var(--shadow-light);
-    animation: pulseRed 1.5s infinite alternate; /* Gentle pulsing animation */
+    transition: all var(--transition-speed) var(--transition-ease); /* Smooth transition for alert changes */
 }
 
+/* Default Danger Alert */
+.alert.alert-danger {
+    background-color: var(--danger-light);
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+    animation: pulseRed 1.5s infinite alternate;
+}
+
+/* Success Alert */
+.alert.alert-success {
+    background-color: var(--success-light); /* Defined in :root */
+    color: var(--accent-color); /* Green */
+    border: 1px solid var(--accent-color);
+    animation: pulseGreen 1.5s infinite alternate;
+}
+
+/* Warning Alert */
+.alert.alert-warning {
+    background-color: var(--warning-light); /* Defined in :root */
+    color: var(--warning-color); /* Orange */
+    border: 1px solid var(--warning-color);
+    animation: pulseYellow 1.5s infinite alternate;
+}
+
+/* --- Keyframes for Alert Animations --- */
 @keyframes pulseRed {
     0% { background-color: var(--danger-light); }
-    100% { background-color: rgba(220, 53, 69, 0.2); } /* Slightly darker red */
+    100% { background-color: rgba(220, 53, 69, 0.2); }
+}
+
+@keyframes pulseGreen {
+    0% { background-color: var(--success-light); }
+    100% { background-color: rgba(40, 167, 69, 0.2); }
+}
+
+@keyframes pulseYellow {
+    0% { background-color: var(--warning-light); }
+    100% { background-color: rgba(255, 193, 7, 0.2); }
 }
 
 
