@@ -82,7 +82,7 @@ a:hover {
 /* --- 3. Header & Navigasi --- */
 header {
     background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-    color: var(--white);
+    color: var(--white); /* Ini yang seharusnya membuat teks putih */
     padding: var(--padding-md) var(--padding-lg);
     text-align: center;
     font-weight: 700;
@@ -107,15 +107,15 @@ nav button {
     flex-grow: 1;
     flex-basis: 0;
     border: none;
-    padding: var(--padding-md-btn); /* Menggunakan padding khusus */
+    padding: var(--padding-md-btn);
     background-color: transparent;
-    color: var(--white);
-    font-weight: 600; /* Lebih tebal */
+    color: var(--white); /* Ini yang seharusnya membuat teks putih */
+    font-weight: 600;
     cursor: pointer;
     transition: background-color var(--transition-speed) var(--transition-ease), 
                 transform var(--transition-fast) var(--transition-ease),
                 box-shadow var(--transition-speed) var(--transition-ease);
-    font-size: 1.05rem; /* Sedikit diperbesar */
+    font-size: 1.05rem;
     white-space: nowrap;
     position: relative;
     overflow: hidden;
@@ -128,8 +128,8 @@ nav button {
     text-align: center; /* Ratakan teks di tengah jika putus baris */
 }
 
-nav button i { /* Gaya untuk ikon di dalam tombol navigasi */
-    font-size: 1.15rem; /* Ukuran ikon sedikit lebih besar dari teks */
+nav button i {
+    font-size: 1.15rem;
 }
 
 nav button::after {
@@ -338,8 +338,8 @@ tr:hover {
 }
 
 /* --- 9. Action Buttons (Edit/Delete/View) --- */
-button.edit, button.delete, button.view-receipt, /* Add the new classes here */
-button.edit-transaction, button.delete-transaction { /* Specific for history table */
+button.edit, button.delete, button.view-receipt, /* Existing generic classes */
+button.edit-transaction, button.delete-transaction { /* Specific classes for history table */
     background: none;
     border: none;
     font-weight: 500;
@@ -354,7 +354,7 @@ button.edit-transaction, button.delete-transaction { /* Specific for history tab
     will-change: transform, background-color;
 }
 
-button.edit, button.edit-transaction { /* Apply primary color to edit buttons */
+button.edit, button.edit-transaction { /* Apply primary color to all edit buttons */
     color: var(--primary-color);
 }
 
@@ -364,7 +364,7 @@ button.edit:hover, button.edit-transaction:hover {
     transform: translateY(-1px);
 }
 
-button.delete, button.delete-transaction { /* Apply danger color to delete buttons */
+button.delete, button.delete-transaction { /* Apply danger color to all delete buttons */
     color: var(--danger-color);
 }
 
@@ -374,7 +374,7 @@ button.delete:hover, button.delete-transaction:hover {
     transform: translateY(-1px);
 }
 
-button.view-receipt {
+button.view-receipt { /* Style for View Receipt button (already styled as primary) */
     background-color: var(--primary-color);
     color: var(--white);
     padding: 0.4rem 0.8rem;
@@ -386,7 +386,6 @@ button.view-receipt:hover {
     background-color: var(--primary-dark);
     transform: translateY(-2px);
 }
-
 
 /* --- 10. Specific Elements Layouts --- */
 .action-buttons-group {
@@ -855,9 +854,6 @@ canvas:hover {
     nav button {
         font-size: 0.8rem;
         padding: 0.4rem;
-    }
-    nav button i {
-        font-size: 0.9rem;
     }
     main {
         margin: 0.5rem;
