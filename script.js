@@ -7,7 +7,7 @@
     const inventoryForm = document.getElementById('inventory-form');
     const productIdField = document.getElementById('product-id');
     const productNameField = document.getElementById('product-name');
-    const productCategoryField = document.getElementById('product-category'); // NEW: Category input
+    const productCategoryField = document.getElementById('product-category');
     const productCostField = document.getElementById('product-cost');
     const productPriceField = document.getElementById('product-price');
     const productStockField = document.getElementById('product-stock');
@@ -16,7 +16,7 @@
 
     // Sales elements
     const salesForm = document.getElementById('sales-form');
-    const filterSaleCategorySelect = document.getElementById('filter-sale-category'); // NEW: Sales category filter
+    const filterSaleCategorySelect = document.getElementById('filter-sale-category');
     const applySalesCategoryFilterBtn = document.getElementById('apply-sales-category-filter');
     const clearSalesCategoryFilterBtn = document.getElementById('clear-sales-category-filter');
     const saleProductSelect = document.getElementById('sale-product');
@@ -60,9 +60,14 @@
 
     // Sales analysis elements
     const bestSellersTableBody = document.querySelector('#best-sellers-table tbody');
-    const dailyRevenueChartCtx = document.getElementById('daily-revenue-chart').getContext('2d');
-    const productRevenueChartCtx = document.getElementById('product-revenue-chart').getContext('2d');
-    const productDistributionChartCtx = document.getElementById('product-distribution-chart').getContext('2d');
+    // Pastikan elemen canvas ada sebelum mendapatkan konteks
+    const dailyRevenueChartCanvas = document.getElementById('daily-revenue-chart');
+    const productRevenueChartCanvas = document.getElementById('product-revenue-chart');
+    const productDistributionChartCanvas = document.getElementById('product-distribution-chart');
+
+    const dailyRevenueChartCtx = dailyRevenueChartCanvas ? dailyRevenueChartCanvas.getContext('2d') : null;
+    const productRevenueChartCtx = productRevenueChartCanvas ? productRevenueChartCanvas.getContext('2d') : null;
+    const productDistributionChartCtx = productDistributionChartCanvas ? productDistributionChartCanvas.getContext('2d') : null;
 
     // Export/Import elements
     const exportInventoryBtn = document.getElementById('export-inventory-btn');
@@ -78,7 +83,7 @@
 
     let inventory = [];
     let sales = [];
-    let lastTransactionDetails = null; // Menyimpan detail transaksi terakhir yang dilihat/terbaru
+    let lastTransactionDetails = null;
 
     // --- CHART INSTANCES ---
     let dailyRevenueChart;
@@ -88,7 +93,7 @@
     // --- FILTER STATE ---
     let currentFilterFromDate = null;
     let currentFilterToDate = null;
-    let currentSalesCategoryFilter = ''; // State for sales category filter
+    let currentSalesCategoryFilter = '';
 
     // --- KONFIGURASI TOKO (Untuk Struk) ---
     const storeInfo = {
@@ -98,7 +103,7 @@
         address3: "Lampung 34511, Indonesia",
         phone: "+62 895 6096 10780",
         website: "https://rm-ampera-abbeey.vercel.app",
-        logoPath: "logo-abbey.png" // Pastikan gambar ini ada di folder root proyek
+        logoPath: "logo-abbey.png"
     };
 
     // --- FUNGSI UTILITY ---
@@ -121,7 +126,6 @@
         sales = saved ? JSON.parse(saved) : [];
     }
 
-    // Mengubah format mata uang ke Rupiah Indonesia
     function formatCurrency(value) {
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -139,28 +143,27 @@
         return !isNaN(value) && value >= 0;
     }
 
-    function clearInventoryAlert() {
-        inventoryAlert.style.display = 'none';
-        inventoryAlert.textContent = '';
-        inventoryAlert.classList.remove('alert-success', 'alert-danger', 'alert-warning');
+    function clearAlert(element) { // Unified function to clear alerts
+        if (element) {
+            element.style.display = 'none';
+            element.textContent = '';
+            element.classList.remove('alert-success', 'alert-danger', 'alert-warning');
+        }
     }
 
-    function clearSalesAlert() {
-        salesAlert.style.display = 'none';
-        salesAlert.textContent = '';
-        salesAlert.classList.remove('alert-success', 'alert-danger', 'alert-warning');
-    }
-
-    function showAlert(element, message, type = 'danger') { // type: 'success', 'danger', 'warning'
+    function showAlert(element, message, type = 'danger') {
+        if (!element) {
+            console.error("Attempted to show alert on a null element:", message);
+            return;
+        }
+        clearAlert(element); // Clear any existing alert classes
         element.style.display = 'block';
         element.textContent = message;
-        element.classList.remove('alert-success', 'alert-danger', 'alert-warning');
         element.classList.add(`alert-${type}`);
-        // Optional: Auto-hide after some time
-        // setTimeout(() => { clearAlert(element); }, 5000);
+        // Auto-hide after 5 seconds
+        setTimeout(() => { clearAlert(element); }, 5000);
     }
 
-    // Helper untuk escape HTML (mencegah XSS)
     function escapeHtml(text) {
         const map = {
             '&': '&amp;',
@@ -172,7 +175,6 @@
         return text.replace(/[&<>"']/g, function(m) { return map[m]; });
     }
 
-    // Helper untuk padding teks
     function padRight(str, length) {
         str = String(str);
         if (str.length > length) return str.substring(0, length);
@@ -197,28 +199,39 @@
             s.classList.toggle('active', s.id === tabName);
         });
 
-        // Pastikan fungsi dipanggil setelah tab aktif
-        if (tabName === 'inventory') {
-            renderInventoryTable();
-        } else if (tabName === 'sales') {
-            populateCategoryFilters();
-            populateSaleProductOptions();
-            renderSalesTable();
-        } else if (tabName === 'transaction-history') {
-            renderFilteredSalesTable();
-            // Optional: Re-render receipt based on the last transaction if it was from sales tab
-            if (sales.length > 0 && !lastTransactionDetails) {
-                 lastTransactionDetails = sales[sales.length - 1];
+        // Use try-catch for each tab rendering to prevent single error from breaking all tabs
+        try {
+            if (tabName === 'inventory') {
+                renderInventoryTable();
+                clearAlert(inventoryAlert); // Clear alert on tab switch
+            } else if (tabName === 'sales') {
+                populateCategoryFilters();
+                populateSaleProductOptions();
+                renderSalesTable();
+                clearAlert(salesAlert); // Clear alert on tab switch
+            } else if (tabName === 'transaction-history') {
+                renderFilteredSalesTable();
+                // If no specific transaction selected, default to last sale for receipt view
+                if (sales.length > 0 && !lastTransactionDetails) {
+                     lastTransactionDetails = sales[sales.length - 1];
+                }
+                renderReceipt();
+                // Note: No specific alert for transaction history, general sales alert is used if needed.
+            } else if (tabName === 'hpp') {
+                populateHppProductOptions();
+                calculateHpp();
+                // Ensure the select has options before dispatching event
+                if (hppUnitForMarginCalcSelect.options.length > 0) {
+                    hppUnitForMarginCalcSelect.dispatchEvent(new Event('change'));
+                }
+            } else if (tabName === 'profit-loss') {
+                calculateProfitLoss();
+            } else if (tabName === 'analysis') {
+                renderSalesAnalysis();
             }
-            renderReceipt();
-        } else if (tabName === 'hpp') {
-            populateHppProductOptions();
-            calculateHpp();
-            hppUnitForMarginCalcSelect.dispatchEvent(new Event('change')); // Trigger initial display for margin calc
-        } else if (tabName === 'profit-loss') {
-            calculateProfitLoss();
-        } else if (tabName === 'analysis') {
-            renderSalesAnalysis();
+        } catch (error) {
+            console.error(`Error rendering tab "${tabName}":`, error);
+            alert(`An error occurred while loading this section (${tabName}). Please check the browser console for details.`);
         }
     }
 
@@ -237,7 +250,7 @@
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td data-label="Name">${escapeHtml(p.name)}</td>
-                <td data-label="Category">${escapeHtml(p.category)}</td>
+                <td data-label="Category">${escapeHtml(p.category || 'N/A')}</td>
                 <td data-label="Cost (HPP)">${formatCurrency(p.cost)}</td>
                 <td data-label="Price">${formatCurrency(p.price)}</td>
                 <td data-label="Stock">${p.stock}</td>
@@ -255,7 +268,7 @@
     }
 
     function editProduct(id) {
-        clearInventoryAlert();
+        clearAlert(inventoryAlert);
         const product = inventory.find(p => p.id === id);
         if (!product) return;
         productIdField.value = product.id;
@@ -267,22 +280,22 @@
         inventoryForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function deleteProduct(id) { // This is now "deactivate"
-        clearInventoryAlert();
+    function deleteProduct(id) {
+        clearAlert(inventoryAlert);
         const product = inventory.find(p => p.id === id);
         if (!product) return;
 
         if (confirm(`Are you sure you want to deactivate "${product.name}"? It will no longer appear in sales selection, but past sales data will remain for analysis.`)) {
             const index = inventory.findIndex(p => p.id === id);
             if (index !== -1) {
-                inventory[index].isActive = false; // Mark as inactive
+                inventory[index].isActive = false;
             }
             saveInventory();
             renderInventoryTable();
             clearInventoryForm();
             populateSaleProductOptions();
             populateCategoryFilters();
-            populateHppProductOptions(); // Update HPP product selects
+            populateHppProductOptions();
             showAlert(inventoryAlert, `Product "${product.name}" deactivated successfully.`, 'success');
         }
     }
@@ -298,7 +311,8 @@
 
     inventoryForm.addEventListener('submit', e => {
         e.preventDefault();
-        clearInventoryAlert();
+        clearAlert(inventoryAlert); // Use clearAlert
+
         const id = productIdField.value || generateId();
         const name = productNameField.value.trim();
         const category = productCategoryField.value.trim();
@@ -347,7 +361,7 @@
         populateSaleProductOptions();
         populateCategoryFilters();
         populateHppProductOptions();
-        showAlert(inventoryAlert, message, 'success'); // Show success notification
+        showAlert(inventoryAlert, message, 'success');
     });
 
     // --- SALES MANAGEMENT ---
@@ -432,7 +446,8 @@
 
     salesForm.addEventListener('submit', e => {
         e.preventDefault();
-        clearSalesAlert();
+        clearAlert(salesAlert);
+
         const productId = saleProductSelect.value;
         const quantity = parseInt(saleQuantityField.value);
         let customerPayment = parseFloat(customerPaymentField.value);
@@ -497,7 +512,6 @@
         customerPaymentField.value = '';
     });
 
-    // Event listeners for sales category filter
     applySalesCategoryFilterBtn.addEventListener('click', () => {
         currentSalesCategoryFilter = filterSaleCategorySelect.value;
         populateSaleProductOptions();
@@ -584,7 +598,7 @@
             showAlert(transactionHistorySection.querySelector('.alert') || transactionHistorySection, 'Start date cannot be after end date.', 'danger');
             return;
         }
-        clearSalesAlert(); // Clear sales alert if it was there
+        // No need to clear sales alert specifically here, as this is for transaction history
         renderFilteredSalesTable();
     });
 
@@ -712,7 +726,6 @@
                     ${receiptContent}
                 </div>
                 <script>
-                    // Wait for all images to load before printing
                     window.onload = function() {
                         const images = document.images;
                         let loadedCount = 0;
@@ -728,7 +741,7 @@
                                 images[i].onload = function() {
                                     loadedCount++;
                                     if (loadedCount === images.length) {
-                                        setTimeout(() => { // Give a tiny bit more time for rendering
+                                        setTimeout(() => {
                                             window.print();
                                             window.close();
                                         }, 100);
@@ -736,7 +749,6 @@
                                 };
                             }
                         }
-                        // If all images were already loaded (from cache), trigger print directly
                         if (loadedCount === images.length) {
                             setTimeout(() => {
                                 window.print();
@@ -905,7 +917,7 @@
                 totalRevenue += product.price * s.quantity;
             }
         });
-        const totalCost = calculateHpp(); // Re-use HPP calculation
+        const totalCost = calculateHpp();
 
         pnlSalesSpan.textContent = formatCurrency(totalRevenue);
         pnlCostSpan.textContent = formatCurrency(totalCost);
@@ -925,9 +937,9 @@
 
     function renderSalesAnalysis() {
         renderBestSellersTable();
-        renderDailyRevenueChart();
-        renderProductRevenueChart();
-        renderProductDistributionChart();
+        if (dailyRevenueChartCtx) renderDailyRevenueChart();
+        if (productRevenueChartCtx) renderProductRevenueChart();
+        if (productDistributionChartCtx) renderProductDistributionChart();
     }
 
     function renderBestSellersTable() {
@@ -963,6 +975,8 @@
     }
 
     function renderDailyRevenueChart() {
+        if (!dailyRevenueChartCtx) return; // Ensure context exists
+
         if (dailyRevenueChart) {
             dailyRevenueChart.destroy();
         }
@@ -1029,6 +1043,8 @@
     }
 
     function renderProductRevenueChart() {
+        if (!productRevenueChartCtx) return; // Ensure context exists
+
         if (productRevenueChart) {
             productRevenueChart.destroy();
         }
@@ -1094,6 +1110,8 @@
     }
 
     function renderProductDistributionChart() {
+        if (!productDistributionChartCtx) return; // Ensure context exists
+
         if (productDistributionChart) {
             productDistributionChart.destroy();
         }
@@ -1215,7 +1233,7 @@
                 const worksheet = workbook.Sheets[firstSheetName];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                if (jsonData.length < 2) { // Need at least 2 rows (header + 1 data)
+                if (jsonData.length < 2) {
                     alert('Excel file is empty or has no data rows after headers.');
                     return;
                 }
@@ -1243,32 +1261,22 @@
 
                     const existingInactive = inventory.filter(p => !p.isActive);
                     let combinedInventory = [...existingInactive];
-                    const seenActiveNames = new Set(existingInactive.map(p => p.name.toLowerCase())); // Include inactive for name check
+                    const seenActiveNames = new Set(existingInactive.map(p => p.name.toLowerCase()));
 
                     newInventoryItems.forEach(newItem => {
                         if (!seenActiveNames.has(newItem.name.toLowerCase())) {
                             combinedInventory.push(newItem);
                             seenActiveNames.add(newItem.name.toLowerCase());
                         } else {
-                            // If name exists, check if it's an update to an active product
                             const existingActiveIndex = combinedInventory.findIndex(p => p.name.toLowerCase() === newItem.name.toLowerCase() && p.isActive);
                             if (existingActiveIndex !== -1) {
-                                // Update existing active product
                                 combinedInventory[existingActiveIndex] = newItem;
                             } else {
-                                // It's an inactive product with the same name, skip if `newItem` is active
-                                // or handle specific merge logic. For now, we prioritize new active item.
-                                if (newItem.isActive) {
-                                    // If we imported an active item with a name of an existing inactive item,
-                                    // we can either update the inactive one to active or skip.
-                                    // Let's replace the inactive one with the new active one.
-                                    const inactiveIndex = combinedInventory.findIndex(p => p.name.toLowerCase() === newItem.name.toLowerCase() && !p.isActive);
-                                    if (inactiveIndex !== -1) {
-                                        combinedInventory[inactiveIndex] = newItem;
-                                    } else {
-                                        // This case should not happen if logic is perfect, but safety net
-                                        console.warn(`Skipping import of duplicate active product: ${newItem.name}`);
-                                    }
+                                const inactiveIndex = combinedInventory.findIndex(p => p.name.toLowerCase() === newItem.name.toLowerCase() && !p.isActive);
+                                if (inactiveIndex !== -1) {
+                                    combinedInventory[inactiveIndex] = newItem;
+                                } else {
+                                    console.warn(`Skipping import of duplicate active product: ${newItem.name}`);
                                 }
                             }
                         }
@@ -1382,14 +1390,12 @@
         currentFilterToDate = new Date(formattedToday);
         currentFilterToDate.setHours(23, 59, 59, 999);
 
-        // Render initial content for active tab
-        const activeTab = document.querySelector('nav button.active');
-        if (activeTab) {
-            switchTab(activeTab.dataset.tab);
-        } else {
-            // Default to inventory if no active tab found
-            switchTab('inventory');
-        }
+        // Get the initially active tab from HTML, or default to 'inventory'
+        const initialActiveTabButton = document.querySelector('nav button.active');
+        const initialTabName = initialActiveTabButton ? initialActiveTabButton.dataset.tab : 'inventory';
+
+        // Render initial content for the determined active tab
+        switchTab(initialTabName);
 
         // Set lastTransactionDetails to the very last sale if any, for initial receipt display
         if (sales.length > 0) {
@@ -1402,10 +1408,10 @@
             t.addEventListener('click', () => switchTab(t.dataset.tab));
         });
 
-        // Initial calculations and chart renders
-        calculateHpp(); // Also updates hppResultSpan
-        calculateProfitLoss(); // Also updates pnl spans
-        renderSalesAnalysis(); // Renders all analysis charts
+        // Initial calculations and chart renders (these are also called by switchTab, but good to have a baseline on load)
+        calculateHpp();
+        calculateProfitLoss();
+        renderSalesAnalysis();
     }
 
     // Jalankan inisialisasi ketika DOM sepenuhnya dimuat
