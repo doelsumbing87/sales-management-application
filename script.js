@@ -17,11 +17,17 @@
     const salesForm = document.getElementById('sales-form');
     const saleProductSelect = document.getElementById('sale-product');
     const saleQuantityField = document.getElementById('sale-quantity');
-    const customerPaymentField = document.getElementById('customer-payment'); // Input pembayaran pelanggan
+    const customerPaymentField = document.getElementById('customer-payment');
     const salesAlert = document.getElementById('sales-alert');
     const salesTableBody = document.querySelector('#sales-table tbody');
 
-    // Receipt elements
+    // Transaction History & Receipt elements
+    const transactionHistorySection = document.getElementById('transaction-history');
+    const filterDateFrom = document.getElementById('filter-date-from');
+    const filterDateTo = document.getElementById('filter-date-to');
+    const applyDateFilterBtn = document.getElementById('apply-date-filter');
+    const clearDateFilterBtn = document.getElementById('clear-date-filter');
+    const filteredSalesTableBody = document.querySelector('#filtered-sales-table tbody');
     const receiptOutput = document.getElementById('receipt-output');
     const printReceiptButton = document.getElementById('print-receipt');
 
@@ -38,8 +44,14 @@
     // Sales analysis elements
     const bestSellersTableBody = document.querySelector('#best-sellers-table tbody');
     const dailyRevenueChartCtx = document.getElementById('daily-revenue-chart').getContext('2d');
-    const productRevenueChartCtx = document.getElementById('product-revenue-chart').getContext('2d');     // Context untuk diagram batang baru
-    const productDistributionChartCtx = document.getElementById('product-distribution-chart').getContext('2d'); // Context untuk diagram lingkaran baru
+    const productRevenueChartCtx = document.getElementById('product-revenue-chart').getContext('2d');
+    const productDistributionChartCtx = document.getElementById('product-distribution-chart').getContext('2d');
+
+    // Export/Import elements
+    const exportInventoryBtn = document.getElementById('export-inventory-btn');
+    const importInventoryFile = document.getElementById('import-inventory-file');
+    const exportSalesBtn = document.getElementById('export-sales-btn');
+    const importSalesFile = document.getElementById('import-sales-file');
 
     // --- DATA & STORAGE ---
     const STORAGE_KEYS = {
@@ -49,12 +61,16 @@
 
     let inventory = [];
     let sales = [];
-    let lastTransactionDetails = null; // Menyimpan detail transaksi terakhir untuk struk
+    let lastTransactionDetails = null; // Menyimpan detail transaksi terakhir yang dilihat/terbaru
 
     // --- CHART INSTANCES ---
     let dailyRevenueChart;
     let productRevenueChart;
     let productDistributionChart;
+
+    // --- FILTER STATE ---
+    let currentFilterFromDate = null;
+    let currentFilterToDate = null;
 
     // --- KONFIGURASI TOKO (Untuk Struk) ---
     const storeInfo = {
@@ -64,7 +80,7 @@
         address3: "Lampung 34511, Indonesia",
         phone: "+62 895 6096 10780",
         website: "https://rm-ampera-abbeey.vercel.app",
-        logoPath: "logo-receipt.png" // Pastikan gambar ini ada di folder root proyek
+        logoPath: "logo-abbey.png" // Pastikan gambar ini ada di folder root proyek
     };
 
     // --- FUNGSI UTILITY ---
@@ -92,7 +108,7 @@
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
             currency: 'IDR',
-            minimumFractionDigits: 0, // Hilangkan desimal jika nilai bulat
+            minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(value);
     }
@@ -130,14 +146,16 @@
     // Helper untuk padding teks
     function padRight(str, length) {
         str = String(str);
+        if (str.length > length) return str.substring(0, length);
         while (str.length < length) str += ' ';
-        return str.substring(0, length); // Pastikan tidak melebihi panjang
+        return str;
     }
 
     function padLeft(str, length) {
         str = String(str);
+        if (str.length > length) return str.substring(str.length - length, str.length);
         while (str.length < length) str = ' ' + str;
-        return str.substring(0, length); // Pastikan tidak melebihi panjang
+        return str;
     }
 
     // --- FUNGSI UI & LOGIC ---
@@ -154,9 +172,14 @@
         if (tabName === 'inventory') renderInventoryTable();
         if (tabName === 'sales') {
             populateSaleProductOptions();
-            renderSalesTable();
+            renderSalesTable(); // Tabel penjualan hari ini
         }
-        if (tabName === 'receipt') renderReceipt();
+        if (tabName === 'transaction-history') {
+            renderFilteredSalesTable(); // Tabel transaksi yang difilter
+            renderReceipt(); // Tampilkan struk dari transaksi terakhir/yang dipilih
+        }
+        if (tabName === 'hpp') calculateHpp();
+        if (tabName === 'profit-loss') calculateProfitLoss();
         if (tabName === 'analysis') renderSalesAnalysis();
     }
 
@@ -164,22 +187,23 @@
 
     function renderInventoryTable() {
         inventoryTableBody.innerHTML = '';
-        if (inventory.length === 0) {
+        const activeProducts = inventory.filter(p => p.isActive);
+        if (activeProducts.length === 0) {
             const tr = document.createElement('tr');
-            tr.innerHTML = '<td colspan="5" style="text-align:center;color:#777;">No products in inventory.</td>';
+            tr.innerHTML = '<td colspan="5" style="text-align:center;color:#777;">No active products in inventory.</td>';
             inventoryTableBody.appendChild(tr);
             return;
         }
-        inventory.forEach(p => {
+        activeProducts.forEach(p => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${escapeHtml(p.name)}</td>
-                <td>${formatCurrency(p.cost)}</td>
-                <td>${formatCurrency(p.price)}</td>
-                <td>${p.stock}</td>
-                <td>
+                <td data-label="Name">${escapeHtml(p.name)}</td>
+                <td data-label="Cost (HPP)">${formatCurrency(p.cost)}</td>
+                <td data-label="Price">${formatCurrency(p.price)}</td>
+                <td data-label="Stock">${p.stock}</td>
+                <td data-label="Actions">
                     <button class="edit" aria-label="Edit ${escapeHtml(p.name)}">Edit</button>
-                    <button class="delete" aria-label="Delete ${escapeHtml(p.name)}">Delete</button>
+                    <button class="delete" aria-label="Deactivate ${escapeHtml(p.name)}">Deactivate</button>
                 </td>
             `;
             const editBtn = tr.querySelector('.edit');
@@ -202,26 +226,21 @@
         inventoryForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function deleteProduct(id) {
+    function deleteProduct(id) { // Ini sekarang adalah "deactivate"
         clearInventoryAlert();
         const product = inventory.find(p => p.id === id);
         if (!product) return;
 
-        const hasSales = sales.some(s => s.productId === id);
-
-        if (hasSales) {
-            inventoryAlert.style.display = 'block';
-            inventoryAlert.textContent = `Cannot delete product "${product.name}" because it has recorded sales.`;
-            return;
-        }
-
-        if (confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
-            inventory = inventory.filter(p => p.id !== id);
+        if (confirm(`Are you sure you want to deactivate "${product.name}"? It will no longer appear in sales selection, but past sales data will remain for analysis.`)) {
+            const index = inventory.findIndex(p => p.id === id);
+            if (index !== -1) {
+                inventory[index].isActive = false; // Tandai sebagai tidak aktif
+            }
             saveInventory();
             renderInventoryTable();
             clearInventoryForm();
-            populateSaleProductOptions();
-            alert('Product deleted successfully.');
+            populateSaleProductOptions(); // Perbarui dropdown penjualan
+            alert('Product deactivated successfully.');
         }
     }
 
@@ -262,18 +281,19 @@
             inventoryAlert.textContent = 'Stock quantity cannot be negative and must be a whole number.';
             return;
         }
-        const nameConflict = inventory.find(p => p.name.toLowerCase() === name.toLowerCase() && p.id !== id);
+        const nameConflict = inventory.find(p => p.name.toLowerCase() === name.toLowerCase() && p.id !== id && p.isActive);
         if (nameConflict) {
             inventoryAlert.style.display = 'block';
-            inventoryAlert.textContent = `A product named "${name}" already exists. Please use a different name.`;
+            inventoryAlert.textContent = `An active product named "${name}" already exists. Please use a different name.`;
             return;
         }
 
         const index = inventory.findIndex(p => p.id === id);
         if (index >= 0) {
-            inventory[index] = { id, name, cost, price, stock };
+            // Perbarui data yang ada, pastikan isActive tetap true jika di-edit
+            inventory[index] = { ...inventory[index], name, cost, price, stock, isActive: true };
         } else {
-            inventory.push({ id, name, cost, price, stock });
+            inventory.push({ id, name, cost, price, stock, isActive: true }); // Produk baru aktif secara default
         }
         saveInventory();
         renderInventoryTable();
@@ -286,30 +306,42 @@
 
     function populateSaleProductOptions() {
         saleProductSelect.innerHTML = '';
-        if (inventory.length === 0) {
-            saleProductSelect.innerHTML = '<option value="">No products available</option>';
+        const activeProducts = inventory.filter(p => p.isActive);
+
+        if (activeProducts.length === 0) {
+            saleProductSelect.innerHTML = '<option value="">No active products available</option>';
             saleProductSelect.disabled = true;
             saleQuantityField.disabled = true;
-            customerPaymentField.disabled = true; // Disable payment field
+            customerPaymentField.disabled = true;
             return;
         }
         saleProductSelect.disabled = false;
         saleQuantityField.disabled = false;
-        customerPaymentField.disabled = false; // Enable payment field
+        customerPaymentField.disabled = false;
 
-        saleProductSelect.innerHTML = '<option value="">-- Select a product --</option>' + inventory.map(p => {
+        saleProductSelect.innerHTML = '<option value="">-- Select a product --</option>' + activeProducts.map(p => {
             return `<option value="${p.id}">${escapeHtml(p.name)} (Stock: ${p.stock})</option>`;
         }).join('');
     }
 
     function renderSalesTable() {
         salesTableBody.innerHTML = '';
-        if (sales.length === 0) {
-            salesTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#777;">No sales recorded.</td></tr>';
-            printReceiptButton.disabled = true;
+        // Filter sales for today only
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+
+        const todaySales = sales.filter(s => {
+            const saleDate = new Date(s.date);
+            return saleDate >= today && saleDate <= endOfToday;
+        });
+
+        if (todaySales.length === 0) {
+            salesTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#777;">No sales recorded for today.</td></tr>';
             return;
         }
-        const sortedSales = [...sales].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const sortedSales = [...todaySales].sort((a, b) => new Date(b.date) - new Date(a.date));
 
         sortedSales.forEach(s => {
             const product = inventory.find(p => p.id === s.productId);
@@ -319,15 +351,14 @@
             const dateString = date.toLocaleDateString('id-ID') + ' ' + date.toLocaleTimeString('id-ID');
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${escapeHtml(productName)}</td>
-                <td>${s.quantity}</td>
-                <td>${formatCurrency(pricePerUnit)}</td>
-                <td>${formatCurrency(s.quantity * pricePerUnit)}</td>
-                <td>${dateString}</td>
+                <td data-label="Product Name">${escapeHtml(productName)}</td>
+                <td data-label="Quantity">${s.quantity}</td>
+                <td data-label="Price per Unit">${formatCurrency(pricePerUnit)}</td>
+                <td data-label="Total">${formatCurrency(s.totalSale)}</td>
+                <td data-label="Date">${dateString}</td>
             `;
             salesTableBody.appendChild(tr);
         });
-        printReceiptButton.disabled = false;
     }
 
     salesForm.addEventListener('submit', e => {
@@ -335,7 +366,7 @@
         clearSalesAlert();
         const productId = saleProductSelect.value;
         const quantity = parseInt(saleQuantityField.value);
-        let customerPayment = parseFloat(customerPaymentField.value); // Ambil dari input
+        let customerPayment = parseFloat(customerPaymentField.value);
 
         if (!productId) {
             salesAlert.style.display = 'block';
@@ -363,9 +394,9 @@
         const saleTotal = product.price * quantity;
 
         if (isNaN(customerPayment) || customerPayment < 0) {
-             salesAlert.style.display = 'block';
-             salesAlert.textContent = 'Customer payment must be a non-negative number.';
-             return;
+            salesAlert.style.display = 'block';
+            salesAlert.textContent = 'Customer payment must be a non-negative number.';
+            return;
         }
 
         if (customerPayment < saleTotal) {
@@ -395,26 +426,115 @@
         saveSales();
         renderInventoryTable();
         populateSaleProductOptions();
-        renderSalesTable();
-
+        renderSalesTable(); // Update today's sales table
+        renderFilteredSalesTable(); // Update historical sales table
         lastTransactionDetails = newSale; // Simpan detail untuk struk
         renderReceipt(); // Render struk setelah penjualan baru
 
         alert('Sale recorded successfully!');
         salesForm.reset();
-        customerPaymentField.value = ''; // Bersihkan input pembayaran
+        customerPaymentField.value = '';
     });
 
-    // --- RECEIPT PRINTING ---
+    // --- TRANSACTION HISTORY & RECEIPT ---
+
+    function renderFilteredSalesTable() {
+        filteredSalesTableBody.innerHTML = '';
+        let displayedSales = sales;
+
+        // Apply filters if dates are set
+        if (currentFilterFromDate && currentFilterToDate) {
+            const fromTimestamp = currentFilterFromDate.getTime();
+            const toTimestamp = currentFilterToDate.getTime();
+
+            displayedSales = sales.filter(s => {
+                const saleTimestamp = new Date(s.date).getTime();
+                // Pastikan transaksi berada dalam rentang tanggal yang dipilih (inklusif)
+                return saleTimestamp >= fromTimestamp && saleTimestamp <= toTimestamp;
+            });
+        }
+
+        if (displayedSales.length === 0) {
+            filteredSalesTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#777;">No transactions found for the selected period.</td></tr>';
+            receiptOutput.textContent = 'Please select a transaction to view its receipt.';
+            printReceiptButton.disabled = true;
+            return;
+        }
+
+        displayedSales.sort((a, b) => new Date(b.date) - new Date(a.date)); // Urutkan terbaru ke terlama
+
+        displayedSales.forEach(s => {
+            const product = inventory.find(p => p.id === s.productId);
+            const productName = product ? product.name : 'Product Not Found';
+            const pricePerUnit = product ? product.price : 0;
+            const date = new Date(s.date);
+            const dateString = date.toLocaleDateString('id-ID') + ' ' + date.toLocaleTimeString('id-ID');
+            const tr = document.createElement('tr');
+            tr.dataset.saleId = s.id; // Untuk identifikasi saat klik "View Receipt"
+
+            tr.innerHTML = `
+                <td data-label="Product Name">${escapeHtml(productName)}</td>
+                <td data-label="Quantity">${s.quantity}</td>
+                <td data-label="Price per Unit">${formatCurrency(pricePerUnit)}</td>
+                <td data-label="Total">${formatCurrency(s.totalSale)}</td>
+                <td data-label="Date">${dateString}</td>
+                <td data-label="Actions">
+                    <button class="view-receipt primary" aria-label="View Receipt for ${escapeHtml(productName)}">View Receipt</button>
+                </td>
+            `;
+            // Menambahkan event listener ke tombol "View Receipt"
+            tr.querySelector('.view-receipt').addEventListener('click', () => {
+                lastTransactionDetails = s; // Set detail transaksi yang dipilih
+                renderReceipt();
+                receiptOutput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            filteredSalesTableBody.appendChild(tr);
+        });
+    }
+
+    applyDateFilterBtn.addEventListener('click', () => {
+        const fromDateStr = filterDateFrom.value;
+        const toDateStr = filterDateTo.value;
+
+        if (fromDateStr) {
+            currentFilterFromDate = new Date(fromDateStr);
+            currentFilterFromDate.setHours(0, 0, 0, 0); // Atur ke awal hari
+        } else {
+            currentFilterFromDate = null;
+        }
+
+        if (toDateStr) {
+            currentFilterToDate = new Date(toDateStr);
+            currentFilterToDate.setHours(23, 59, 59, 999); // Atur ke akhir hari
+        } else {
+            currentFilterToDate = null;
+        }
+
+        if (currentFilterFromDate && currentFilterToDate && currentFilterFromDate > currentFilterToDate) {
+            alert('Start date cannot be after end date.');
+            return;
+        }
+
+        renderFilteredSalesTable();
+    });
+
+    clearDateFilterBtn.addEventListener('click', () => {
+        filterDateFrom.value = '';
+        filterDateTo.value = '';
+        currentFilterFromDate = null;
+        currentFilterToDate = null;
+        renderFilteredSalesTable();
+        receiptOutput.textContent = 'Please select a transaction to view its receipt.';
+        printReceiptButton.disabled = true;
+    });
 
     function renderReceipt() {
-        receiptOutput.innerHTML = ''; // Bersihkan konten sebelumnya
+        receiptOutput.innerHTML = '';
 
-        // Gunakan lastTransactionDetails jika ada, jika tidak, coba ambil penjualan terakhir dari array sales
         const transaction = lastTransactionDetails || (sales.length > 0 ? sales[sales.length - 1] : null);
 
         if (!transaction) {
-            receiptOutput.textContent = 'No sales yet.';
+            receiptOutput.textContent = 'No sales selected or no sales yet.';
             printReceiptButton.disabled = true;
             return;
         }
@@ -440,15 +560,17 @@
 
         // Baris Transaksi
         receiptHtml += `<pre style="font-family: monospace; font-size: 1rem; white-space: pre-wrap; margin: 0; padding: 0;">`;
-        receiptHtml += `TRST-${transaction.id.substring(1, 6).toUpperCase()} ${saleDate.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${saleDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n`;
+        // Gunakan id transaksi yang unik (contoh TRST-ID_PENDEK)
+        const transactionIdShort = transaction.id.substring(1, 6).toUpperCase(); // Ambil 5 karakter dari ID
+        receiptHtml += `TRST-${transactionIdShort} ${saleDate.toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' })} ${saleDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n`;
         receiptHtml += `</pre>\n`;
 
         receiptHtml += `<hr style="border: 0; border-top: 1px dashed #aaa; margin: 10px 0;">\n`;
 
         // Detail Item
         receiptHtml += `<pre style="font-family: monospace; font-size: 1rem; white-space: pre-wrap; margin: 0; padding: 0;">`;
-        receiptHtml += `${padRight('Item', 20)} ${padLeft('Qty', 3)} ${padLeft('Harga', 8)} ${padLeft('Total', 10)}\n`; // Header kolom
-        receiptHtml += `-------------------------------------------\n`; // Garis pemisah kolom
+        receiptHtml += `${padRight('Item', 20)} ${padLeft('Qty', 3)} ${padLeft('Harga', 8)} ${padLeft('Total', 10)}\n`;
+        receiptHtml += `-------------------------------------------\n`;
 
         const productName = product ? product.name : 'Produk Tidak Ditemukan';
         const pricePerUnit = product ? product.price : 0;
@@ -462,7 +584,7 @@
 
         // Total, Pembayaran, Kembalian
         receiptHtml += `<pre style="font-family: monospace; font-size: 1rem; white-space: pre-wrap; margin: 0; padding: 0;">`;
-        receiptHtml += `${padRight('Total', 32)} ${padLeft(formatCurrency(transaction.totalSale), 12)}\n`; // Lebar 32 untuk label, 12 untuk nilai
+        receiptHtml += `${padRight('Total', 32)} ${padLeft(formatCurrency(transaction.totalSale), 12)}\n`;
         receiptHtml += `${padRight('Pembayaran', 32)} ${padLeft(formatCurrency(transaction.customerPayment), 12)}\n`;
         receiptHtml += `${padRight('Kembalian', 32)} ${padLeft(formatCurrency(transaction.change), 12)}\n`;
         receiptHtml += `</pre>\n`;
@@ -485,10 +607,10 @@
                         width: 100%;
                         box-sizing: border-box;
                         padding: 1rem 1.5rem;
-                        font-family: monospace; /* Tetap monospace untuk detail item */
-                        font-size: 14px; /* Sedikit lebih kecil untuk print */
+                        font-family: monospace;
+                        font-size: 14px;
                         line-height: 1.3;
-                        text-align: center; /* Untuk header */
+                        text-align: center;
                     }
                     .store-logo {
                         max-width: 150px;
@@ -501,13 +623,13 @@
                     hr { border: 0; border-top: 1px dashed #aaa; margin: 10px 0; }
                     pre {
                         font-family: monospace;
-                        font-size: inherit; /* Inherit dari .receipt */
+                        font-size: inherit;
                         white-space: pre-wrap;
                         margin: 0;
                         padding: 0;
-                        text-align: left; /* Teks item ke kiri */
+                        text-align: left;
                     }
-                    div { text-align: center; } /* Umumnya div di tengah */
+                    div { text-align: center; }
                     strong { font-weight: bold; }
                 </style>
             </head>
@@ -560,7 +682,7 @@
 
         const profitLoss = totalRevenue - totalCost;
         pnlResultSpan.textContent = formatCurrency(profitLoss);
-        pnlResultSpan.style.color = profitLoss >= 0 ? '#2e7d32' : '#c62828';
+        pnlResultSpan.style.color = profitLoss >= 0 ? '#28a745' : '#dc3545'; // Green for profit, red for loss
         return profitLoss;
     }
 
@@ -585,7 +707,7 @@
             return;
         }
 
-        const productSalesMap = {}; // Mengagregasi kuantitas terjual per produk
+        const productSalesMap = {};
         sales.forEach(s => {
             if (!productSalesMap[s.productId]) {
                 productSalesMap[s.productId] = 0;
@@ -596,13 +718,16 @@
         const productSales = Object.entries(productSalesMap)
             .map(([pid, qty]) => {
                 const product = inventory.find(p => p.id === pid);
-                return { productId: pid, quantity: qty, name: product ? product.name : 'Unknown Product' };
+                return { productId: pid, quantity: qty, name: product ? product.name : 'Unknown Product (Deactivated)' };
             })
-            .sort((a, b) => b.quantity - a.quantity); // Urutkan berdasarkan kuantitas
+            .sort((a, b) => b.quantity - a.quantity);
 
         productSales.forEach(ps => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${escapeHtml(ps.name)}</td><td>${ps.quantity}</td>`;
+            tr.innerHTML = `
+                <td data-label="Product Name">${escapeHtml(ps.name)}</td>
+                <td data-label="Total Quantity Sold">${ps.quantity}</td>
+            `;
             bestSellersTableBody.appendChild(tr);
         });
     }
@@ -623,7 +748,7 @@
             if (!product) return;
 
             const saleDate = new Date(s.date);
-            const ymd = saleDate.toISOString().slice(0, 10); // Format YYYY-MM-DD
+            const ymd = saleDate.toISOString().slice(0, 10);
             if (!revenueByDate[ymd]) revenueByDate[ymd] = 0;
             revenueByDate[ymd] += product.price * s.quantity;
         });
@@ -639,12 +764,12 @@
                     label: 'Daily Revenue (Rp)',
                     data: revenues,
                     fill: true,
-                    backgroundColor: 'rgba(63,81,181,0.2)',
-                    borderColor: '#3f51b5',
+                    backgroundColor: 'rgba(74, 84, 225, 0.2)', // primary-color dengan opacity
+                    borderColor: '#4a54e1', // primary-color
                     tension: 0.3,
                     pointRadius: 5,
                     pointHoverRadius: 7,
-                    pointBackgroundColor: '#3f51b5'
+                    pointBackgroundColor: '#4a54e1'
                 }]
             },
             options: {
@@ -652,21 +777,21 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        labels: { color: '#3f51b5', font: { weight: 600 } }
+                        labels: { color: '#333d47', font: { weight: 600 } }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            color: '#3f51b5',
-                            callback: function(value) { return formatCurrency(value); } // Format Y-axis ticks
+                            color: '#333d47',
+                            callback: function(value) { return formatCurrency(value); }
                         },
-                        grid: { color: '#e0e0e0' }
+                        grid: { color: '#e0e5eb' }
                     },
                     x: {
-                        ticks: { color: '#3f51b5' },
-                        grid: { color: '#e0e0e0' }
+                        ticks: { color: '#333d47' },
+                        grid: { color: '#e0e5eb' }
                     }
                 }
             }
@@ -695,7 +820,7 @@
         });
 
         const sortedProducts = Object.entries(revenueByProduct)
-            .sort(([, revenueA], [, revenueB]) => revenueB - revenueA); // Urutkan berdasarkan pendapatan
+            .sort(([, revenueA], [, revenueB]) => revenueB - revenueA);
 
         const labels = sortedProducts.map(([name]) => name);
         const data = sortedProducts.map(([, revenue]) => parseFloat(revenue.toFixed(2)));
@@ -717,21 +842,21 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        labels: { color: '#333', font: { weight: 600 } }
+                        labels: { color: '#333d47', font: { weight: 600 } }
                     }
                 },
                 scales: {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            color: '#333',
+                            color: '#333d47',
                             callback: function(value) { return formatCurrency(value); }
                         },
-                        grid: { color: '#e0e0e0' }
+                        grid: { color: '#e0e5eb' }
                     },
                     x: {
-                        ticks: { color: '#333' },
-                        grid: { color: '#e0e0e0'}
+                        ticks: { color: '#333d47' },
+                        grid: { color: '#e0e5eb' }
                     }
                 }
             }
@@ -764,16 +889,16 @@
         const data = labels.map(name => parseFloat(revenueByProduct[name].toFixed(2)));
 
         const backgroundColors = [
-            'rgba(255, 99, 132, 0.7)', // Merah
-            'rgba(54, 162, 235, 0.7)', // Biru
-            'rgba(255, 206, 86, 0.7)', // Kuning
-            'rgba(75, 192, 192, 0.7)', // Hijau Teal
-            'rgba(153, 102, 255, 0.7)',// Ungu
-            'rgba(255, 159, 64, 0.7)', // Oranye
-            'rgba(199, 199, 199, 0.7)',// Abu-abu
-            'rgba(83, 102, 255, 0.7)', // Biru muda
-            'rgba(231, 233, 64, 0.7)', // Olive
-            'rgba(255, 0, 0, 0.7)'     // Merah terang
+            'rgba(255, 99, 132, 0.7)',
+            'rgba(54, 162, 235, 0.7)',
+            'rgba(255, 206, 86, 0.7)',
+            'rgba(75, 192, 192, 0.7)',
+            'rgba(153, 102, 255, 0.7)',
+            'rgba(255, 159, 64, 0.7)',
+            'rgba(199, 199, 199, 0.7)',
+            'rgba(83, 102, 255, 0.7)',
+            'rgba(231, 233, 64, 0.7)',
+            'rgba(255, 0, 0, 0.7)'
         ];
         const borderColors = [
             'rgba(255, 99, 132, 1)',
@@ -805,7 +930,7 @@
                 plugins: {
                     legend: {
                         position: 'top',
-                        labels: { color: '#333', font: { weight: 600 } }
+                        labels: { color: '#333d47', font: { weight: 600 } }
                     },
                     tooltip: {
                         callbacks: {
@@ -828,6 +953,181 @@
         });
     }
 
+    // --- EXPORT/IMPORT FUNCTIONS ---
+
+    function createWorksheet(data, headers) {
+        const ws = XLSX.utils.json_to_sheet(data);
+        if (headers) {
+            XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' });
+        }
+        return ws;
+    }
+
+    function exportToExcel(data, sheetName, fileName, headers = null) {
+        if (data.length === 0) {
+            alert(`No data to export for ${sheetName}.`);
+            return;
+        }
+        const wb = XLSX.utils.book_new();
+        const ws = createWorksheet(data, headers);
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        XLSX.writeFile(wb, `${fileName}.xlsx`);
+        alert(`Data successfully exported to ${fileName}.xlsx!`);
+    }
+
+    function importFromExcel(file, type) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }); // Read as array of arrays
+
+                if (jsonData.length === 0) {
+                    alert('Excel file is empty or has no recognizable data.');
+                    return;
+                }
+
+                const headers = jsonData[0];
+                const rows = jsonData.slice(1); // Data rows
+
+                if (type === 'inventory') {
+                    if (!confirm('Importing inventory will OVERWRITE your current active inventory data. Deactivated products will remain. Are you sure?')) {
+                        return;
+                    }
+                    const newInventory = rows.map(row => {
+                        const item = {};
+                        headers.forEach((header, i) => {
+                            item[header] = row[i];
+                        });
+                        return {
+                            id: item.id || generateId(),
+                            name: String(item.name || '').trim(),
+                            cost: parseFloat(item.cost || 0),
+                            price: parseFloat(item.price || 0),
+                            stock: parseInt(item.stock || 0),
+                            isActive: item.isActive !== undefined ? Boolean(item.isActive) : true
+                        };
+                    }).filter(item => item.name && !isNaN(item.cost) && !isNaN(item.price) && !isNaN(item.stock));
+
+                    // Gabungkan produk baru dengan yang sudah ada (jika ada yang tidak aktif)
+                    // Atau, lebih simpel: timpa semua inventaris dengan data aktif baru.
+                    // Untuk skenario "overwrite active inventory":
+                    inventory = inventory.filter(p => !p.isActive); // Pertahankan yang tidak aktif
+                    inventory.push(...newInventory); // Tambahkan yang baru diimpor
+                    
+                    // Filter out duplicates based on name for new active products
+                    const uniqueActiveInventory = [];
+                    const seenNames = new Set(inventory.filter(p => !p.isActive).map(p => p.name.toLowerCase()));
+
+                    inventory.forEach(p => {
+                        if (p.isActive && seenNames.has(p.name.toLowerCase())) {
+                            // Skip if active duplicate found, or handle as update
+                            // For simplicity, we just keep the first occurrence or skip duplicates
+                            // For true merging/updating, a more complex loop is needed.
+                        } else {
+                            uniqueActiveInventory.push(p);
+                            if (p.isActive) {
+                                seenNames.add(p.name.toLowerCase());
+                            }
+                        }
+                    });
+                    inventory = uniqueActiveInventory;
+
+
+                    saveInventory();
+                    renderInventoryTable();
+                    populateSaleProductOptions();
+                    alert('Inventory imported successfully! Duplicates by name might be skipped/updated.');
+
+                } else if (type === 'sales') {
+                    if (!confirm('Importing sales will ADD to your current sales data. Are you sure?')) {
+                        return;
+                    }
+                    const newSales = rows.map(row => {
+                        const item = {};
+                        headers.forEach((header, i) => {
+                            item[header] = row[i];
+                        });
+                        return {
+                            id: item.id || generateId(),
+                            productId: String(item.productId || ''),
+                            quantity: parseInt(item.quantity || 0),
+                            date: item.date || new Date().toISOString(),
+                            customerPayment: parseFloat(item.customerPayment || 0),
+                            change: parseFloat(item.change || 0),
+                            totalSale: parseFloat(item.totalSale || 0)
+                        };
+                    }).filter(item => item.productId && !isNaN(item.quantity) && item.quantity > 0);
+
+                    sales.push(...newSales);
+                    saveSales();
+                    renderSalesTable();
+                    renderFilteredSalesTable();
+                    alert('Sales imported successfully!');
+                }
+            } catch (error) {
+                console.error("Error importing Excel file:", error);
+                alert('Failed to import Excel file. Please check the file format and ensure headers match (e.g., "id", "name", "cost", "price", "stock", "isActive" for inventory).');
+            } finally {
+                // Clear the file input after import to allow re-importing the same file
+                if (type === 'inventory') importInventoryFile.value = '';
+                if (type === 'sales') importSalesFile.value = '';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // --- EVENT LISTENERS FOR EXPORT/IMPORT ---
+
+    exportInventoryBtn.addEventListener('click', () => {
+        const headers = ["id", "name", "cost", "price", "stock", "isActive"];
+        const dataToExport = inventory.map(p => ({
+            id: p.id,
+            name: p.name,
+            cost: p.cost,
+            price: p.price,
+            stock: p.stock,
+            isActive: p.isActive
+        }));
+        exportToExcel(dataToExport, "InventoryData", "Inventory_Export", headers);
+    });
+
+    importInventoryFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            importFromExcel(file, 'inventory');
+        }
+    });
+
+    exportSalesBtn.addEventListener('click', () => {
+        const headers = ["id", "productId", "productName", "quantity", "pricePerUnit", "totalSale", "customerPayment", "change", "date"];
+        const dataToExport = sales.map(s => {
+            const product = inventory.find(p => p.id === s.productId);
+            return {
+                id: s.id,
+                productId: s.productId,
+                productName: product ? product.name : 'Product Not Found', // Ambil nama produk dari inventaris
+                quantity: s.quantity,
+                pricePerUnit: product ? product.price : 0,
+                totalSale: s.totalSale,
+                customerPayment: s.customerPayment,
+                change: s.change,
+                date: s.date
+            };
+        });
+        exportToExcel(dataToExport, "SalesData", "Sales_Export", headers);
+    });
+
+    importSalesFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            importFromExcel(file, 'sales');
+        }
+    });
+
     // --- INISIALISASI ---
 
     function init() {
@@ -836,11 +1136,33 @@
         renderInventoryTable();
         populateSaleProductOptions();
         renderSalesTable();
-        renderReceipt(); // Tampilkan struk terakhir saat aplikasi dimuat
+
+        // Set initial date filters for Transaction History to today
+        const today = new Date();
+        const formattedToday = today.toISOString().slice(0, 10); // YYYY-MM-DD
+        filterDateFrom.value = formattedToday;
+        filterDateTo.value = formattedToday;
+        currentFilterFromDate = new Date(formattedToday);
+        currentFilterFromDate.setHours(0, 0, 0, 0); // Set to start of day
+        currentFilterToDate = new Date(formattedToday);
+        currentFilterToDate.setHours(23, 59, 59, 999); // Set to end of day
+
+        renderFilteredSalesTable(); // Initial render for transaction history
+
+        // Set lastTransactionDetails to the very last sale if any, for initial receipt display
+        if (sales.length > 0) {
+            lastTransactionDetails = sales[sales.length - 1];
+        }
+        renderReceipt(); // Render initial receipt
 
         tabs.forEach(t => {
             t.addEventListener('click', () => switchTab(t.dataset.tab));
         });
+
+        // Run calculations/analysis charts on load
+        calculateHpp();
+        calculateProfitLoss();
+        renderSalesAnalysis();
     }
 
     // Jalankan inisialisasi ketika DOM sepenuhnya dimuat
