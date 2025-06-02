@@ -83,7 +83,7 @@
 
     let inventory = [];
     let sales = [];
-    let lastTransactionDetails = null;
+    let lastTransactionDetails = null; // Menyimpan detail transaksi terakhir yang dilihat/terbaru
 
     // --- CHART INSTANCES ---
     let dailyRevenueChart;
@@ -93,7 +93,7 @@
     // --- FILTER STATE ---
     let currentFilterFromDate = null;
     let currentFilterToDate = null;
-    let currentSalesCategoryFilter = '';
+    let currentSalesCategoryFilter = ''; // State for sales category filter
 
     // --- KONFIGURASI TOKO (Untuk Struk) ---
     const storeInfo = {
@@ -103,7 +103,7 @@
         address3: "Lampung 34511, Indonesia",
         phone: "+62 895 6096 10780",
         website: "https://rm-ampera-abbeey.vercel.app",
-        logoPath: "logo-receipt.png"
+        logoPath: "logo-abbey.png" // Pastikan gambar ini ada di folder root proyek
     };
 
     // --- FUNGSI UTILITY ---
@@ -126,6 +126,7 @@
         sales = saved ? JSON.parse(saved) : [];
     }
 
+    // Mengubah format mata uang ke Rupiah Indonesia
     function formatCurrency(value) {
         return new Intl.NumberFormat('id-ID', {
             style: 'currency',
@@ -221,7 +222,7 @@
                 populateHppProductOptions();
                 calculateHpp();
                 // Ensure the select has options before dispatching event
-                if (hppUnitForMarginCalcSelect.options.length > 0) {
+                if (hppUnitForMarginCalcSelect && hppUnitForMarginCalcSelect.options.length > 0) { // Check if element exists and has options
                     hppUnitForMarginCalcSelect.dispatchEvent(new Event('change'));
                 }
             } else if (tabName === 'profit-loss') {
@@ -280,7 +281,7 @@
         inventoryForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function deleteProduct(id) {
+    function deleteProduct(id) { // This is now "deactivate"
         clearAlert(inventoryAlert);
         const product = inventory.find(p => p.id === id);
         if (!product) return;
@@ -288,14 +289,14 @@
         if (confirm(`Are you sure you want to deactivate "${product.name}"? It will no longer appear in sales selection, but past sales data will remain for analysis.`)) {
             const index = inventory.findIndex(p => p.id === id);
             if (index !== -1) {
-                inventory[index].isActive = false;
+                inventory[index].isActive = false; // Mark as inactive
             }
             saveInventory();
             renderInventoryTable();
             clearInventoryForm();
             populateSaleProductOptions();
             populateCategoryFilters();
-            populateHppProductOptions();
+            populateHppProductOptions(); // Update HPP product selects
             showAlert(inventoryAlert, `Product "${product.name}" deactivated successfully.`, 'success');
         }
     }
@@ -598,7 +599,6 @@
             showAlert(transactionHistorySection.querySelector('.alert') || transactionHistorySection, 'Start date cannot be after end date.', 'danger');
             return;
         }
-        // No need to clear sales alert specifically here, as this is for transaction history
         renderFilteredSalesTable();
     });
 
@@ -767,6 +767,12 @@
     // --- HPP CALCULATOR & PRICING TOOLS ---
 
     function populateHppProductOptions() {
+        // Ensure elements exist before manipulating them
+        if (!hppUnitForCalcSelect || !hppUnitForMarginCalcSelect) {
+            console.warn("HPP select elements not found. Skipping population.");
+            return;
+        }
+
         hppUnitForCalcSelect.innerHTML = '<option value="">-- Select Product --</option>';
         hppUnitForMarginCalcSelect.innerHTML = '<option value="">-- Select Product --</option>';
         inventory.filter(p => p.isActive).forEach(p => {
@@ -803,15 +809,19 @@
         recommendedPriceSpan.textContent = formatCurrency(recommendedPrice);
     });
 
-    hppUnitForMarginCalcSelect.addEventListener('change', () => {
-        const productId = hppUnitForMarginCalcSelect.value;
-        const product = inventory.find(p => p.id === productId);
-        if (product) {
-            displayCurrentSellingPriceField.value = formatCurrency(product.price);
-        } else {
-            displayCurrentSellingPriceField.value = "N/A";
-        }
-    });
+    // Event listener for hppUnitForMarginCalcSelect changed to check if element exists
+    if (hppUnitForMarginCalcSelect) {
+        hppUnitForMarginCalcSelect.addEventListener('change', () => {
+            const productId = hppUnitForMarginCalcSelect.value;
+            const product = inventory.find(p => p.id === productId);
+            if (product) {
+                displayCurrentSellingPriceField.value = formatCurrency(product.price);
+            } else {
+                displayCurrentSellingPriceField.value = "N/A";
+            }
+        });
+    }
+
 
     calculateActualMarginBtn.addEventListener('click', () => {
         const productId = hppUnitForMarginCalcSelect.value;
@@ -937,6 +947,7 @@
 
     function renderSalesAnalysis() {
         renderBestSellersTable();
+        // Check if context exists before rendering charts
         if (dailyRevenueChartCtx) renderDailyRevenueChart();
         if (productRevenueChartCtx) renderProductRevenueChart();
         if (productDistributionChartCtx) renderProductDistributionChart();
@@ -975,7 +986,7 @@
     }
 
     function renderDailyRevenueChart() {
-        if (!dailyRevenueChartCtx) return; // Ensure context exists
+        if (!dailyRevenueChartCtx) return;
 
         if (dailyRevenueChart) {
             dailyRevenueChart.destroy();
@@ -1043,7 +1054,7 @@
     }
 
     function renderProductRevenueChart() {
-        if (!productRevenueChartCtx) return; // Ensure context exists
+        if (!productRevenueChartCtx) return;
 
         if (productRevenueChart) {
             productRevenueChart.destroy();
@@ -1110,7 +1121,7 @@
     }
 
     function renderProductDistributionChart() {
-        if (!productDistributionChartCtx) return; // Ensure context exists
+        if (!productDistributionChartCtx) return;
 
         if (productDistributionChart) {
             productDistributionChart.destroy();
@@ -1409,9 +1420,9 @@
         });
 
         // Initial calculations and chart renders (these are also called by switchTab, but good to have a baseline on load)
-        calculateHpp();
-        calculateProfitLoss();
-        renderSalesAnalysis();
+        calculateHpp(); // Also updates hppResultSpan
+        calculateProfitLoss(); // Also updates pnl spans
+        renderSalesAnalysis(); // Renders all analysis charts
     }
 
     // Jalankan inisialisasi ketika DOM sepenuhnya dimuat
