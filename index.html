@@ -52,9 +52,14 @@
             <form id="sales-form">
                 <label for="sale-product">Select Product</label>
                 <select id="sale-product" required>
-                    </select>
+                    <option value="">-- Select a product --</option>
+                </select>
                 <label for="sale-quantity">Quantity</label>
                 <input type="number" id="sale-quantity" min="1" step="1" value="1" required />
+
+                <label for="customer-payment">Customer Payment (Rp)</label>
+                <input type="number" id="customer-payment" min="0" step="1000" required placeholder="Contoh: 20000" />
+
                 <button type="submit" class="primary">Add Sale</button>
             </form>
             <div id="sales-alert" class="alert" style="display:none;"></div>
@@ -76,7 +81,9 @@
 
         <section id="receipt">
             <h2>Last Receipt</h2>
-            <pre id="receipt-output" class="receipt">No sales yet.</pre>
+            <div id="receipt-output" class="receipt">
+                No sales yet.
+            </div>
             <button id="print-receipt" class="primary" disabled>Print Receipt</button>
         </section>
 
@@ -84,21 +91,21 @@
             <h2>Cost of Goods Sold (HPP) Calculator</h2>
             <p>This calculates total Cost of Goods Sold based on sales made.</p>
             <button id="calculate-hpp" class="primary">Calculate HPP</button>
-            <p><strong>Cost of Goods Sold:</strong> $<span id="hpp-result">0.00</span></p>
+            <p><strong>Cost of Goods Sold:</strong> <span id="hpp-result">Rp0</span></p>
         </section>
 
         <section id="profit-loss">
             <h2>Profit & Loss Calculator</h2>
             <p>This calculates profit or loss based on sales and cost of goods sold.</p>
             <button id="calculate-pnl" class="primary">Calculate Profit / Loss</button>
-            <p><strong>Total Sales Revenue:</strong> $<span id="pnl-sales">0.00</span></p>
-            <p><strong>Total Cost (HPP):</strong> $<span id="pnl-cost">0.00</span></p>
-            <p><strong>Profit / Loss:</strong> $<span id="pnl-result" style="font-weight:700;">0.00</span></p>
+            <p><strong>Total Sales Revenue:</strong> <span id="pnl-sales">Rp0</span></p>
+            <p><strong>Total Cost (HPP):</strong> <span id="pnl-cost">Rp0</span></p>
+            <p><strong>Profit / Loss:</strong> <span id="pnl-result" style="font-weight:700;">Rp0</span></p>
         </section>
 
         <section id="analysis">
             <h2>Sales Analysis</h2>
-            <h3>Best Selling Products</h3>
+            <h3>Best Selling Products (by Quantity)</h3>
             <table id="best-sellers-table" aria-label="Best Sellers Table">
                 <thead>
                     <tr><th>Product Name</th><th>Total Quantity Sold</th></tr>
@@ -106,8 +113,22 @@
                 <tbody>
                     </tbody>
             </table>
-            <h3>Daily Revenue Graph</h3>
+
+            <hr style="border: 0; border-top: 1px dashed #eee; margin: 2rem 0;">
+
+            <h3>Daily Revenue Trend</h3>
             <canvas id="daily-revenue-chart"></canvas>
+
+            <hr style="border: 0; border-top: 1px dashed #eee; margin: 2rem 0;">
+
+            <h3>Product Sales (by Revenue)</h3>
+            <canvas id="product-revenue-chart"></canvas>
+
+            <hr style="border: 0; border-top: 1px dashed #eee; margin: 2rem 0;">
+
+            <h3>Revenue Distribution (by Product)</h3>
+            <canvas id="product-distribution-chart"></canvas>
+
         </section>
     </main>
 
