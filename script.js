@@ -35,6 +35,17 @@
     const receiptOutput = document.getElementById('receipt-output');
     const printReceiptButton = document.getElementById('print-receipt');
 
+    // NEW: Edit Transaction Modal elements
+    const editTransactionModal = document.getElementById('edit-transaction-modal');
+    const closeEditModalBtn = editTransactionModal ? editTransactionModal.querySelector('.close-button') : null;
+    const editTransactionForm = document.getElementById('edit-transaction-form');
+    const editTransactionIdField = document.getElementById('edit-transaction-id');
+    const editSaleProductSelect = document.getElementById('edit-sale-product');
+    const editSaleQuantityField = document.getElementById('edit-sale-quantity');
+    const editCustomerPaymentField = document.getElementById('edit-customer-payment');
+    const saveTransactionChangesBtn = editTransactionForm ? editTransactionForm.querySelector('button[type="submit"]') : null;
+    const cancelEditTransactionBtn = document.getElementById('cancel-edit-transaction');
+
     // HPP & Pricing Tools elements
     const calculateHppBtn = document.getElementById('calculate-hpp');
     const hppResultSpan = document.getElementById('hpp-result');
@@ -60,7 +71,6 @@
 
     // Sales analysis elements
     const bestSellersTableBody = document.querySelector('#best-sellers-table tbody');
-    // Pastikan elemen canvas ada sebelum mendapatkan konteks
     const dailyRevenueChartCanvas = document.getElementById('daily-revenue-chart');
     const productRevenueChartCanvas = document.getElementById('product-revenue-chart');
     const productDistributionChartCanvas = document.getElementById('product-distribution-chart');
@@ -75,7 +85,7 @@
     const exportSalesBtn = document.getElementById('export-sales-btn');
     const importSalesFile = document.getElementById('import-sales-file');
 
-    // NEW: Store Settings elements
+    // Store Settings elements
     const storeSettingsSection = document.getElementById('store-settings');
     const storeSettingsForm = document.getElementById('store-settings-form');
     const storeNameField = document.getElementById('store-name');
@@ -94,14 +104,13 @@
     const STORAGE_KEYS = {
         INVENTORY: 'salesApp_inventory',
         SALES: 'salesApp_sales',
-        STORE_INFO: 'salesApp_storeInfo' // NEW: Key for store info
+        STORE_INFO: 'salesApp_storeInfo'
     };
 
     let inventory = [];
     let sales = [];
     let lastTransactionDetails = null;
 
-    // NEW: Store information will be loaded/saved here
     let storeInfo = {
         name: "RM. AMPERA ABBEEY",
         address1: "Jl. Lintas Sumatera, Candimas, Kec.",
@@ -109,10 +118,8 @@
         address3: "Lampung 34511, Indonesia",
         phone: "+62 895 6096 10780",
         website: "https://rm-ampera-abbeey.vercel.app",
-        logoData: null // Store logo as Base64 string
+        logoData: null
     };
-    // Default logo path will be used if logoData is null.
-    // If logoData exists, it will override the logoPath.
     const defaultLogoPath = "logo-abbey.png"; // Make sure this file exists in your project root!
 
     // --- CHART INSTANCES ---
@@ -145,7 +152,6 @@
         sales = saved ? JSON.parse(saved) : [];
     }
 
-    // NEW: Save and Load Store Info
     function saveStoreInfo() {
         localStorage.setItem(STORAGE_KEYS.STORE_INFO, JSON.stringify(storeInfo));
     }
@@ -154,11 +160,9 @@
         const saved = localStorage.getItem(STORAGE_KEYS.STORE_INFO);
         if (saved) {
             const loadedInfo = JSON.parse(saved);
-            // Merge loaded info with defaults to handle new fields
             storeInfo = { ...storeInfo, ...loadedInfo };
         }
-        // Update the receipt preview immediately after loading
-        renderReceipt(); // Call renderReceipt after storeInfo is loaded
+        renderReceipt();
     }
 
     function formatCurrency(value) {
@@ -178,7 +182,7 @@
         return !isNaN(value) && value >= 0;
     }
 
-    function clearAlert(element) { // Unified function to clear alerts
+    function clearAlert(element) {
         if (element) {
             element.style.display = 'none';
             element.textContent = '';
@@ -191,11 +195,10 @@
             console.error("Attempted to show alert on a null element:", message);
             return;
         }
-        clearAlert(element); // Clear any existing alert classes
+        clearAlert(element);
         element.style.display = 'block';
         element.textContent = message;
         element.classList.add(`alert-${type}`);
-        // Auto-hide after 5 seconds
         setTimeout(() => { clearAlert(element); }, 5000);
     }
 
@@ -234,7 +237,6 @@
             s.classList.toggle('active', s.id === tabName);
         });
 
-        // Use try-catch for each tab rendering to prevent single error from breaking all tabs
         try {
             if (tabName === 'inventory') {
                 renderInventoryTable();
@@ -250,6 +252,8 @@
                      lastTransactionDetails = sales[sales.length - 1];
                 }
                 renderReceipt();
+                // Ensure modal is hidden when entering this tab
+                if (editTransactionModal) editTransactionModal.style.display = 'none';
             } else if (tabName === 'hpp') {
                 populateHppProductOptions();
                 calculateHpp();
@@ -260,7 +264,7 @@
                 calculateProfitLoss();
             } else if (tabName === 'analysis') {
                 renderSalesAnalysis();
-            } else if (tabName === 'store-settings') { // NEW: Handle store settings tab
+            } else if (tabName === 'store-settings') {
                 loadStoreSettingsForm();
                 clearAlert(storeSettingsAlert);
             }
@@ -315,7 +319,7 @@
         inventoryForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function deleteProduct(id) { // This is now "deactivate"
+    function deleteProduct(id) {
         clearAlert(inventoryAlert);
         const product = inventory.find(p => p.id === id);
         if (!product) return;
@@ -323,14 +327,14 @@
         if (confirm(`Are you sure you want to deactivate "${product.name}"? It will no longer appear in sales selection, but past sales data will remain for analysis.`)) {
             const index = inventory.findIndex(p => p.id === id);
             if (index !== -1) {
-                inventory[index].isActive = false; // Mark as inactive
+                inventory[index].isActive = false;
             }
             saveInventory();
             renderInventoryTable();
             clearInventoryForm();
             populateSaleProductOptions();
             populateCategoryFilters();
-            populateHppProductOptions(); // Update HPP product selects
+            populateHppProductOptions();
             showAlert(inventoryAlert, `Product "${product.name}" deactivated successfully.`, 'success');
         }
     }
@@ -599,7 +603,9 @@
                 <td data-label="Total">${formatCurrency(s.totalSale)}</td>
                 <td data-label="Date">${dateString}</td>
                 <td data-label="Actions">
-                    <button class="view-receipt primary" aria-label="View Receipt for ${escapeHtml(productName)}">View Receipt</button>
+                    <button class="view-receipt primary small-button" aria-label="View Receipt for ${escapeHtml(productName)}">View</button>
+                    <button class="edit-transaction primary small-button" aria-label="Edit Transaction for ${escapeHtml(productName)}">Edit</button>
+                    <button class="delete-transaction danger-button small-button" aria-label="Delete Transaction for ${escapeHtml(productName)}">Delete</button>
                 </td>
             `;
             tr.querySelector('.view-receipt').addEventListener('click', () => {
@@ -607,6 +613,9 @@
                 renderReceipt();
                 receiptOutput.scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
+            tr.querySelector('.edit-transaction').addEventListener('click', () => editTransaction(s.id));
+            tr.querySelector('.delete-transaction').addEventListener('click', () => deleteTransaction(s.id));
+
             filteredSalesTableBody.appendChild(tr);
         });
     }
@@ -663,14 +672,12 @@
 
         let receiptHtml = '';
 
-        // Use storeInfo.logoData if available, otherwise use default path
         const currentLogoSource = storeInfo.logoData || defaultLogoPath;
 
         receiptHtml += `<img src="${currentLogoSource}" alt="Store Logo" class="store-logo">\n`;
         receiptHtml += `<div style="text-align: center;">\n`;
         receiptHtml += `  <strong>${escapeHtml(storeInfo.name)}</strong><br>\n`;
         receiptHtml += `  ${escapeHtml(storeInfo.address1)}<br>\n`;
-        // Only add address lines if they exist
         if (storeInfo.address2) receiptHtml += `  ${escapeHtml(storeInfo.address2)}<br>\n`;
         if (storeInfo.address3) receiptHtml += `  ${escapeHtml(storeInfo.address3)}<br>\n`;
         if (storeInfo.phone) receiptHtml += `  ${escapeHtml(storeInfo.phone)}<br>\n`;
@@ -802,10 +809,162 @@
         printWindow.focus();
     });
 
+    // --- NEW: EDIT/DELETE TRANSACTION FUNCTIONS ---
+
+    function editTransaction(id) {
+        const transaction = sales.find(s => s.id === id);
+        if (!transaction) return;
+
+        const product = inventory.find(p => p.id === transaction.productId);
+        if (!product) {
+            alert('Cannot edit: Original product not found in inventory. It might have been deactivated or corrupted.');
+            return;
+        }
+
+        // Populate the edit modal form
+        editTransactionIdField.value = transaction.id;
+        // Populate product select with current product and its stock before this sale
+        // This calculates physical current stock + quantity from this sale to get theoretical stock before this sale
+        const currentProductInInventory = inventory.find(p => p.id === product.id);
+        const theoreticalStock = currentProductInInventory ? currentProductInInventory.stock + transaction.quantity : transaction.quantity; // Fallback
+        
+        editSaleProductSelect.innerHTML = `<option value="${product.id}">${escapeHtml(product.name)} (Stock Before Sale: ${theoreticalStock})</option>`;
+        editSaleProductSelect.value = product.id;
+        editSaleProductSelect.disabled = true; // Keep product selection disabled for simplicity
+
+        editSaleQuantityField.value = transaction.quantity;
+        editCustomerPaymentField.value = transaction.customerPayment;
+
+        // Show the modal
+        if (editTransactionModal) {
+            editTransactionModal.style.display = 'flex';
+        }
+    }
+
+    function deleteTransaction(id) {
+        if (!confirm('Are you sure you want to delete this transaction? This will reverse the stock change and affect Profit & Loss report.')) {
+            return;
+        }
+
+        const transactionIndex = sales.findIndex(s => s.id === id);
+        if (transactionIndex === -1) return;
+
+        const transaction = sales[transactionIndex];
+        const product = inventory.find(p => p.id === transaction.productId);
+
+        // Revert stock change
+        if (product) {
+            product.stock += transaction.quantity;
+            saveInventory(); // Save updated inventory
+        }
+
+        // Remove transaction
+        sales.splice(transactionIndex, 1);
+        saveSales();
+
+        // Re-render affected tables/reports
+        renderSalesTable();
+        renderFilteredSalesTable();
+        renderReceipt(); // Update receipt (will show 'No sales selected' or previous)
+        calculateHpp(); // Recalculate HPP
+        calculateProfitLoss(); // Recalculate P&L
+        renderSalesAnalysis(); // Update charts
+
+        alert('Transaction deleted successfully and stock reverted!');
+    }
+
+    // Event listeners for the edit modal
+    if (closeEditModalBtn) {
+        closeEditModalBtn.addEventListener('click', () => {
+            if (editTransactionModal) editTransactionModal.style.display = 'none';
+        });
+    }
+    if (cancelEditTransactionBtn) {
+        cancelEditTransactionBtn.addEventListener('click', () => {
+            if (editTransactionModal) editTransactionModal.style.display = 'none';
+        });
+    }
+
+    // Close modal when clicking outside
+    window.addEventListener('click', (event) => {
+        if (event.target === editTransactionModal) {
+            editTransactionModal.style.display = 'none';
+        }
+    });
+
+    if (editTransactionForm) { // Check if form exists
+        editTransactionForm.addEventListener('submit', e => {
+            e.preventDefault();
+
+            const transactionId = editTransactionIdField.value;
+            const newQuantity = parseInt(editSaleQuantityField.value);
+            const newCustomerPayment = parseFloat(editCustomerPaymentField.value);
+
+            if (newQuantity <= 0 || isNaN(newQuantity)) {
+                alert('Quantity must be a positive whole number.');
+                return;
+            }
+            if (newCustomerPayment < 0 || isNaN(newCustomerPayment)) {
+                alert('Customer payment must be a non-negative number.');
+                return;
+            }
+
+            const transactionIndex = sales.findIndex(s => s.id === transactionId);
+            if (transactionIndex === -1) {
+                alert('Transaction not found!');
+                return;
+            }
+
+            const oldTransaction = { ...sales[transactionIndex] }; // Copy old transaction
+            const product = inventory.find(p => p.id === oldTransaction.productId);
+
+            if (!product) {
+                alert('Original product for this transaction not found. Cannot update stock.');
+                return;
+            }
+
+            // Calculate difference in quantity
+            const quantityDifference = newQuantity - oldTransaction.quantity;
+
+            // Check if new quantity exceeds stock (only if increasing quantity)
+            if (quantityDifference > 0 && product.stock < quantityDifference) {
+                alert(`Insufficient stock. Only ${product.stock} items are available to increase quantity by ${quantityDifference}.`);
+                return;
+            }
+
+            // Revert old stock change and apply new one
+            product.stock += oldTransaction.quantity; // Add back old quantity
+            product.stock -= newQuantity; // Subtract new quantity
+            
+            const newTotalSale = product.price * newQuantity;
+            const newChange = newCustomerPayment - newTotalSale;
+
+            // Update the transaction object
+            sales[transactionIndex].quantity = newQuantity;
+            sales[transactionIndex].customerPayment = newCustomerPayment;
+            sales[transactionIndex].totalSale = newTotalSale;
+            sales[transactionIndex].change = newChange;
+            sales[transactionIndex].date = new Date().toISOString(); // Update date to current time for re-ordering in history if needed
+
+            saveInventory();
+            saveSales();
+
+            // Re-render affected tables/reports
+            renderSalesTable();
+            renderFilteredSalesTable();
+            renderReceipt();
+            calculateHpp();
+            calculateProfitLoss();
+            renderSalesAnalysis();
+
+            if (editTransactionModal) editTransactionModal.style.display = 'none';
+            alert('Transaction updated successfully!');
+        });
+    }
+
     // --- HPP CALCULATOR & PRICING TOOLS ---
 
     function populateHppProductOptions() {
-        // Ensure elements exist before manipulating them
         if (!hppUnitForCalcSelect || !hppUnitForMarginCalcSelect) {
             console.warn("HPP select elements not found. Skipping population.");
             return;
@@ -847,7 +1006,6 @@
         recommendedPriceSpan.textContent = formatCurrency(recommendedPrice);
     });
 
-    // Event listener for hppUnitForMarginCalcSelect changed to check if element exists
     if (hppUnitForMarginCalcSelect) {
         hppUnitForMarginCalcSelect.addEventListener('change', () => {
             const productId = hppUnitForMarginCalcSelect.value;
@@ -985,7 +1143,6 @@
 
     function renderSalesAnalysis() {
         renderBestSellersTable();
-        // Check if context exists before rendering charts
         if (dailyRevenueChartCtx) renderDailyRevenueChart();
         if (productRevenueChartCtx) renderProductRevenueChart();
         if (productDistributionChartCtx) renderProductDistributionChart();
@@ -1423,9 +1580,9 @@
         }
     });
 
-    // --- NEW: STORE SETTINGS MANAGEMENT ---
+    // --- STORE SETTINGS MANAGEMENT ---
     function loadStoreSettingsForm() {
-        if (!storeNameField) { // Add check for null elements
+        if (!storeNameField) {
             console.warn("Store settings form elements not found. Skipping loadStoreSettingsForm.");
             return;
         }
@@ -1437,19 +1594,20 @@
         storePhoneField.value = storeInfo.phone || '';
         storeWebsiteField.value = storeInfo.website || '';
 
-        // Display current logo or placeholder
-        if (storeInfo.logoData) {
-            logoPreviewImg.src = storeInfo.logoData;
-            logoPreviewImg.style.display = 'block';
-            logoStatusSpan.textContent = '';
-        } else {
-            logoPreviewImg.src = defaultLogoPath; // Fallback to default image path
-            logoPreviewImg.style.display = 'block';
-            logoStatusSpan.textContent = 'No custom logo uploaded. Using default.';
+        if (logoPreviewImg && logoStatusSpan) {
+            if (storeInfo.logoData) {
+                logoPreviewImg.src = storeInfo.logoData;
+                logoPreviewImg.style.display = 'block';
+                logoStatusSpan.textContent = '';
+            } else {
+                logoPreviewImg.src = defaultLogoPath;
+                logoPreviewImg.style.display = 'block';
+                logoStatusSpan.textContent = 'No custom logo uploaded. Using default.';
+            }
         }
     }
 
-    if (storeSettingsForm) { // Add check for null element
+    if (storeSettingsForm) {
         storeSettingsForm.addEventListener('submit', e => {
             e.preventDefault();
             clearAlert(storeSettingsAlert);
@@ -1466,7 +1624,6 @@
                 return;
             }
 
-            // Update storeInfo object
             storeInfo.name = newStoreName;
             storeInfo.address1 = newAddress1;
             storeInfo.address2 = newAddress2;
@@ -1474,37 +1631,32 @@
             storeInfo.phone = newPhone;
             storeInfo.website = newWebsite;
 
-            // Handle logo upload
             const file = storeLogoUploadField.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(event) {
-                    storeInfo.logoData = event.target.result; // Store as Base64
+                    storeInfo.logoData = event.target.result;
                     saveStoreInfo();
-                    loadStoreSettingsForm(); // Update preview
-                    renderReceipt(); // Update receipt with new logo
+                    loadStoreSettingsForm();
+                    renderReceipt();
                     showAlert(storeSettingsAlert, 'Store settings and logo saved successfully!', 'success');
                 };
                 reader.onerror = function(error) {
                     console.error("Error reading file:", error);
                     showAlert(storeSettingsAlert, 'Failed to read logo file. Please try again.', 'danger');
                 };
-                reader.readAsDataURL(file); // Convert file to Base64
+                reader.readAsDataURL(file);
             } else {
-                // No new file uploaded, just save text settings
-                // If user previously uploaded a logo and now clears the input, logoData should persist unless explicitly cleared
-                // For simplicity, if input is empty, don't change logoData (keep previous or default)
                 saveStoreInfo();
-                renderReceipt(); // Update receipt with new text info
+                renderReceipt();
                 showAlert(storeSettingsAlert, 'Store settings saved successfully!', 'success');
             }
         });
     }
 
-    if (storeLogoUploadField) { // Add check for null element
+    if (storeLogoUploadField && logoPreviewImg && logoStatusSpan) {
         storeLogoUploadField.addEventListener('change', () => {
             if (!storeLogoUploadField.files[0]) {
-                // If user cleared selection, revert preview to stored logo or default
                 if (storeInfo.logoData) {
                     logoPreviewImg.src = storeInfo.logoData;
                     logoStatusSpan.textContent = '';
@@ -1513,7 +1665,6 @@
                     logoStatusSpan.textContent = 'No custom logo uploaded. Using default.';
                 }
             } else {
-                // Show preview of newly selected file
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     logoPreviewImg.src = e.target.result;
@@ -1524,7 +1675,6 @@
             }
         });
     }
-
 
     // --- INISIALISASI ---
 
@@ -1565,6 +1715,11 @@
         calculateHpp();
         calculateProfitLoss();
         renderSalesAnalysis();
+
+        // Hide edit transaction modal initially
+        if (editTransactionModal) {
+            editTransactionModal.style.display = 'none';
+        }
     }
 
     document.addEventListener('DOMContentLoaded', init);
