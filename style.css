@@ -670,8 +670,7 @@ canvas:hover {
         padding: var(--padding-sm) var(--padding-md);
         font-size: 0.9rem;
     }
-    /* NEW: Adjust icon size for smaller nav buttons */
-    nav button i {
+    nav button i { /* Ikon di nav */
         font-size: 1rem;
     }
     main {
@@ -705,7 +704,7 @@ canvas:hover {
     }
 }
 
-/* Small Devices (Phones) */
+/* Small Devices (Phones) - Target for the screenshot issue */
 @media (max-width: 768px) {
     body {
         font-size: 14px;
@@ -715,16 +714,16 @@ canvas:hover {
         padding: var(--padding-sm);
     }
     nav {
-        flex-direction: column;
+        flex-direction: column; /* Ini yang membuat tombol bertumpuk */
     }
     nav button {
         padding: var(--padding-sm) var(--padding-md);
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         font-size: 0.85rem;
-        flex-direction: column; /* Ikon dan teks bertumpuk vertikal */
+        flex-direction: column; /* Ikon dan teks bertumpuk vertikal (icon-text) */
         gap: 0.3rem;
-        white-space: normal; /* Allow text to wrap for smaller buttons */
-        text-align: center; /* Center align text if it wraps */
+        white-space: normal; /* Izinkan teks putus baris */
+        text-align: center; /* Pastikan teks rata tengah jika putus baris */
     }
     nav button i {
         font-size: 1rem;
@@ -783,7 +782,6 @@ canvas:hover {
         color: var(--text-light);
         text-align: left;
     }
-    /* Penyesuaian khusus untuk kolom Actions agar tombol tetap di tengah/kanan */
     td[data-label="Actions"], td:last-child:not([data-label="Actions"]) {
         text-align: center;
         padding-left: var(--padding-sm);
@@ -835,14 +833,14 @@ canvas:hover {
 
     /* Modal on mobile */
     .modal-content {
-        width: 95%; /* Wider modal on smaller screens */
+        width: 95%;
         padding: var(--padding-md);
     }
     .modal-content form .primary,
     .modal-content form .danger-button {
-        width: 100%; /* Full width buttons on mobile */
+        width: 100%;
         margin-right: 0;
-        margin-bottom: var(--margin-sm); /* Spacing between stacked buttons */
+        margin-bottom: var(--margin-sm);
     }
 }
 
