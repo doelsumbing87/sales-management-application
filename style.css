@@ -1,0 +1,189 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background: #f4f7f9;
+    color: #333;
+}
+
+header {
+    background: #3f51b5; /* Biru Indigo */
+    color: white;
+    padding: 1rem 2rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.8rem;
+    letter-spacing: 0.05em;
+    user-select: none;
+}
+
+nav {
+    display: flex;
+    background: #283593; /* Biru Indigo Gelap */
+}
+
+nav button {
+    flex-grow: 1;
+    border: none;
+    padding: 1rem;
+    background: #283593;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    font-size: 1rem;
+}
+
+nav button:hover, nav button.active {
+    background: #3949ab; /* Biru Indigo sedikit lebih terang */
+}
+
+main {
+    max-width: 960px;
+    margin: 2rem auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); /* Bayangan lembut */
+    padding: 2rem;
+}
+
+section {
+    display: none; /* Sembunyikan semua section secara default */
+}
+
+section.active {
+    display: block; /* Tampilkan section yang aktif */
+}
+
+h2 {
+    margin-top: 0;
+    color: #3f51b5;
+}
+
+label {
+    display: block;
+    margin-top: 1rem;
+    font-weight: 600;
+}
+
+input[type=text],
+input[type=number],
+select {
+    width: 100%;
+    padding: 0.4rem 0.6rem;
+    margin-top: 0.3rem;
+    box-sizing: border-box; /* Pastikan padding tidak menambah lebar */
+    border: 1.5px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border 0.3s;
+}
+
+input[type=text]:focus,
+input[type=number]:focus,
+select:focus {
+    outline: none;
+    border-color: #3f51b5; /* Border biru saat focus */
+}
+
+button.primary {
+    margin-top: 1rem;
+    background: #3f51b5;
+    color: white;
+    border: none;
+    padding: 0.7rem 1.6rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: background-color 0.3s;
+}
+
+button.primary:hover {
+    background: #283593;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse; /* Hilangkan spasi antar border sel */
+    margin-top: 1rem;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 0.6rem 0.8rem;
+    text-align: left;
+    font-size: 0.95rem;
+}
+
+th {
+    background: #e8eaf6; /* Latar belakang header tabel */
+}
+
+tr:hover {
+    background: #f1f3f9; /* Latar belakang baris saat di-hover */
+}
+
+button.edit, button.delete {
+    background: none;
+    border: none;
+    color: #3f51b5;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    margin-right: 0.5rem;
+    border-radius: 3px;
+    transition: background-color 0.3s;
+}
+
+button.edit:hover {
+    background: #c5cae9; /* Latar belakang hover untuk edit */
+}
+
+button.delete:hover {
+    background: #ef9a9a; /* Latar belakang hover untuk delete (merah muda) */
+    color: #b71c1c; /* Warna teks merah gelap */
+}
+
+.small-input {
+    width: 80px; /* Contoh style jika ada input kecil */
+}
+
+.receipt {
+    white-space: pre-wrap; /* Pertahankan spasi dan baris baru */
+    font-family: monospace; /* Font monospasi untuk struk */
+    background: #f9f9f9;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    line-height: 1.3;
+}
+
+canvas {
+    max-width: 100%;
+    height: 300px; /* Tinggi default untuk grafik */
+    margin-top: 1rem;
+}
+
+.alert {
+    padding: 0.8rem;
+    background: #ffcccc; /* Latar belakang merah muda untuk alert */
+    color: #b71c1c; /* Warna teks merah gelap untuk alert */
+    border-radius: 5px;
+    margin-top: 1rem;
+    font-weight: 600;
+}
+
+/* --- Media Queries untuk Responsivitas --- */
+@media (max-width: 600px) {
+    nav button {
+        font-size: 0.85rem;
+        padding: 0.7rem;
+    }
+
+    main {
+        margin: 1rem;
+        padding: 1rem;
+    }
+}
