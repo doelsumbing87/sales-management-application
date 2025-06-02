@@ -1,189 +1,452 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+:root {
+    /* Variabel Warna */
+    --primary-color: #4a54e1; /* Biru yang lebih cerah, modern */
+    --primary-dark: #373fad;
+    --secondary-color: #f0f4f8; /* Latar belakang abu-abu terang */
+    --text-color: #333d47; /* Teks abu-abu gelap */
+    --light-text-color: #6c757d;
+    --white: #ffffff;
+    --border-color: #e0e5eb;
+    --shadow-light: rgba(0, 0, 0, 0.08);
+    --shadow-medium: rgba(0, 0, 0, 0.15);
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+
+    /* Spacing */
+    --padding-sm: 0.75rem;
+    --padding-md: 1.5rem;
+    --padding-lg: 2rem;
+    --margin-sm: 0.75rem;
+    --margin-md: 1.5rem;
+
+    /* Border Radius */
+    --border-radius-sm: 5px;
+    --border-radius-md: 10px;
+}
 
 body {
     margin: 0;
     font-family: 'Poppins', sans-serif;
-    background: #f4f7f9;
-    color: #333;
+    background: var(--secondary-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Agar footer (jika ada) berada di bawah */
 }
 
 header {
-    background: #3f51b5; /* Biru Indigo */
-    color: white;
-    padding: 1rem 2rem;
+    background: var(--primary-color);
+    color: var(--white);
+    padding: var(--padding-md) var(--padding-lg);
     text-align: center;
-    font-weight: 600;
-    font-size: 1.8rem;
-    letter-spacing: 0.05em;
+    font-weight: 700;
+    font-size: 2rem;
+    letter-spacing: 0.08em;
     user-select: none;
+    box-shadow: 0 4px 8px var(--shadow-medium);
 }
 
 nav {
     display: flex;
-    background: #283593; /* Biru Indigo Gelap */
+    background: var(--primary-dark);
+    flex-wrap: wrap; /* Izinkan tombol wrap ke baris berikutnya di layar kecil */
+    box-shadow: 0 2px 5px var(--shadow-light);
 }
 
 nav button {
     flex-grow: 1;
+    flex-basis: auto; /* Memungkinkan item menyesuaikan lebar */
     border: none;
-    padding: 1rem;
-    background: #283593;
-    color: white;
+    padding: var(--padding-sm) var(--padding-md);
+    background: var(--primary-dark);
+    color: var(--white);
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.3s;
-    font-size: 1rem;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    font-size: 0.95rem;
+    white-space: nowrap; /* Mencegah teks putus baris */
 }
 
-nav button:hover, nav button.active {
-    background: #3949ab; /* Biru Indigo sedikit lebih terang */
+nav button:hover {
+    background: var(--primary-color);
+    transform: translateY(-2px); /* Efek hover modern */
+}
+
+nav button.active {
+    background: var(--primary-color);
+    box-shadow: inset 0 3px 6px var(--shadow-medium);
+    border-bottom: 3px solid var(--white); /* Indikator tab aktif */
+    font-weight: 700;
 }
 
 main {
-    max-width: 960px;
-    margin: 2rem auto;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1); /* Bayangan lembut */
-    padding: 2rem;
+    flex-grow: 1; /* Memastikan main mengisi ruang yang tersedia */
+    max-width: 1000px; /* Lebar maksimal konten */
+    margin: var(--margin-md) auto;
+    background: var(--white);
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 8px 20px var(--shadow-medium);
+    padding: var(--padding-lg);
+    box-sizing: border-box; /* Pastikan padding tidak menambah lebar */
+    overflow-x: hidden; /* Mencegah overflow horizontal di main content */
 }
 
 section {
-    display: none; /* Sembunyikan semua section secara default */
+    display: none;
+    animation: fadeIn 0.5s ease-out; /* Animasi saat tab berubah */
 }
 
 section.active {
-    display: block; /* Tampilkan section yang aktif */
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 h2 {
     margin-top: 0;
-    color: #3f51b5;
+    color: var(--primary-color);
+    font-weight: 700;
+    font-size: 1.8rem;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: var(--margin-md);
+}
+
+h3 {
+    color: var(--text-color);
+    font-size: 1.3rem;
+    margin-top: var(--margin-lg);
+    margin-bottom: var(--margin-sm);
 }
 
 label {
     display: block;
-    margin-top: 1rem;
+    margin-top: var(--margin-sm);
     font-weight: 600;
+    color: var(--light-text-color);
+    font-size: 0.9rem;
 }
 
 input[type=text],
 input[type=number],
 select {
     width: 100%;
-    padding: 0.4rem 0.6rem;
-    margin-top: 0.3rem;
-    box-sizing: border-box; /* Pastikan padding tidak menambah lebar */
-    border: 1.5px solid #ccc;
-    border-radius: 5px;
+    padding: var(--padding-sm);
+    margin-top: 0.4rem;
+    box-sizing: border-box;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
     font-size: 1rem;
-    transition: border 0.3s;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    background-color: var(--white);
 }
 
 input[type=text]:focus,
 input[type=number]:focus,
 select:focus {
     outline: none;
-    border-color: #3f51b5; /* Border biru saat focus */
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 84, 225, 0.2); /* Ring focus yang lebih lembut */
 }
 
 button.primary {
-    margin-top: 1rem;
-    background: #3f51b5;
-    color: white;
+    margin-top: var(--margin-md);
+    background: var(--primary-color);
+    color: var(--white);
     border: none;
-    padding: 0.7rem 1.6rem;
+    padding: 0.8rem 2rem;
     font-weight: 600;
     cursor: pointer;
-    border-radius: 5px;
+    border-radius: var(--border-radius-sm);
     font-size: 1rem;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 10px rgba(74, 84, 225, 0.3);
 }
 
 button.primary:hover {
-    background: #283593;
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(74, 84, 225, 0.4);
 }
 
 table {
     width: 100%;
-    border-collapse: collapse; /* Hilangkan spasi antar border sel */
-    margin-top: 1rem;
+    border-collapse: separate; /* Menggunakan separate untuk border-radius */
+    border-spacing: 0; /* Menghilangkan spasi antar sel */
+    margin-top: var(--margin-md);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    overflow: hidden; /* Memastikan border-radius terlihat */
+    box-shadow: 0 2px 10px var(--shadow-light);
 }
 
 th, td {
-    border: 1px solid #ddd;
-    padding: 0.6rem 0.8rem;
+    padding: 0.8rem 1rem;
     text-align: left;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--border-color); /* Hanya border bawah */
 }
 
 th {
-    background: #e8eaf6; /* Latar belakang header tabel */
+    background: #eef2f7; /* Latar belakang header tabel yang lebih modern */
+    color: var(--text-color);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+tr:last-child td {
+    border-bottom: none; /* Hilangkan border bawah pada baris terakhir */
 }
 
 tr:hover {
-    background: #f1f3f9; /* Latar belakang baris saat di-hover */
+    background: #f7f9fb; /* Hover baris yang lebih lembut */
 }
 
 button.edit, button.delete {
     background: none;
     border: none;
-    color: #3f51b5;
+    color: var(--primary-color);
     font-weight: 600;
     cursor: pointer;
-    padding: 0.2rem 0.5rem;
-    margin-right: 0.5rem;
-    border-radius: 3px;
-    transition: background-color 0.3s;
+    padding: 0.3rem 0.6rem;
+    margin-right: 0.4rem;
+    border-radius: var(--border-radius-sm);
+    transition: background-color 0.3s ease, color 0.3s ease;
+    font-size: 0.85rem;
 }
 
 button.edit:hover {
-    background: #c5cae9; /* Latar belakang hover untuk edit */
+    background: rgba(74, 84, 225, 0.1); /* Biru terang */
+    color: var(--primary-dark);
+}
+
+button.delete {
+    color: var(--danger-color);
 }
 
 button.delete:hover {
-    background: #ef9a9a; /* Latar belakang hover untuk delete (merah muda) */
-    color: #b71c1c; /* Warna teks merah gelap */
+    background: rgba(220, 53, 69, 0.1); /* Merah terang */
+    color: var(--danger-color);
 }
 
 .small-input {
-    width: 80px; /* Contoh style jika ada input kecil */
+    width: 80px; /* Jika ada input dengan lebar spesifik */
 }
 
 .receipt {
-    white-space: pre-wrap; /* Pertahankan spasi dan baris baru */
-    font-family: monospace; /* Font monospasi untuk struk */
-    background: #f9f9f9;
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    font-size: 1rem;
-    line-height: 1.3;
+    white-space: pre-wrap;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; /* Font monospace yang lebih modern */
+    background: var(--white);
+    padding: var(--padding-md) var(--padding-lg);
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 4px 12px var(--shadow-light);
+    font-size: 0.95rem;
+    line-height: 1.4;
+    text-align: center; /* Untuk menengahkan logo dan informasi toko */
+    overflow-x: auto; /* Agar struk bisa discroll horizontal jika terlalu lebar */
+}
+
+.receipt .store-logo {
+    max-width: 120px; /* Lebih kecil agar tidak terlalu mendominasi */
+    height: auto;
+    margin-bottom: 10px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.receipt pre {
+    font-family: inherit; /* Tetap monospace */
+    font-size: inherit;
+    white-space: pre-wrap;
+    margin: 0;
+    padding: 0;
+    text-align: left; /* Konten detail struk (item, total) rata kiri */
+}
+
+.receipt hr {
+    border: 0;
+    border-top: 1px dashed var(--border-color); /* Garis putus-putus yang lebih halus */
+    margin: 15px 0;
 }
 
 canvas {
     max-width: 100%;
-    height: 300px; /* Tinggi default untuk grafik */
-    margin-top: 1rem;
+    height: 350px; /* Tinggi grafik sedikit lebih tinggi */
+    margin-top: var(--margin-md);
+    background: var(--white);
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 4px 10px var(--shadow-light);
+    padding: 1rem;
+    box-sizing: border-box;
 }
 
 .alert {
-    padding: 0.8rem;
-    background: #ffcccc; /* Latar belakang merah muda untuk alert */
-    color: #b71c1c; /* Warna teks merah gelap untuk alert */
-    border-radius: 5px;
-    margin-top: 1rem;
+    padding: var(--padding-sm);
+    background: rgba(220, 53, 69, 0.1); /* Latar belakang alert merah muda transparan */
+    color: var(--danger-color);
+    border: 1px solid var(--danger-color);
+    border-radius: var(--border-radius-sm);
+    margin-top: var(--margin-md);
     font-weight: 600;
+    text-align: center;
 }
 
-/* --- Media Queries untuk Responsivitas --- */
-@media (max-width: 600px) {
-    nav button {
-        font-size: 0.85rem;
-        padding: 0.7rem;
-    }
+/* --- MEDIA QUERIES UNTUK RESPONSIVITAS --- */
 
+/* Tablet & Layar Menengah */
+@media (max-width: 992px) {
+    header {
+        font-size: 1.5rem;
+        padding: var(--padding-md);
+    }
     main {
-        margin: 1rem;
-        padding: 1rem;
+        margin: var(--margin-sm);
+        padding: var(--padding-md);
+    }
+    nav button {
+        font-size: 0.9rem;
+        padding: 0.6rem 0.8rem;
+    }
+    h2 {
+        font-size: 1.6rem;
+    }
+    h3 {
+        font-size: 1.2rem;
     }
 }
+
+/* Ponsel & Layar Kecil */
+@media (max-width: 768px) {
+    header {
+        font-size: 1.3rem;
+        padding: var(--padding-sm);
+    }
+    nav {
+        flex-direction: column; /* Tombol navigasi menjadi vertikal */
+    }
+    nav button {
+        padding: 0.7rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Garis pemisah antar tombol */
+    }
+    nav button:last-child {
+        border-bottom: none;
+    }
+    main {
+        margin: var(--margin-sm);
+        padding: var(--padding-sm);
+        border-radius: var(--border-radius-sm);
+    }
+    h2 {
+        font-size: 1.4rem;
+        padding-bottom: 0.3rem;
+    }
+    h3 {
+        font-size: 1.1rem;
+    }
+    table, th, td {
+        display: block; /* Tabel responsif: setiap baris menjadi blok */
+        width: 100%;
+        box-sizing: border-box;
+    }
+    th {
+        display: none; /* Sembunyikan header tabel di layar kecil */
+    }
+    td {
+        border-bottom: 1px solid var(--border-color);
+        padding: 0.6rem 0.8rem;
+        text-align: right;
+        position: relative;
+    }
+    td::before {
+        content: attr(data-label); /* Tampilkan label kolom */
+        position: absolute;
+        left: 1rem;
+        font-weight: 600;
+        color: var(--light-text-color);
+        text-align: left;
+        width: calc(50% - 1.5rem); /* Sesuaikan lebar label */
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    td:last-child {
+        border-bottom: none;
+    }
+    /* Khusus untuk tabel Sales Analysis */
+    #best-sellers-table td::before {
+        width: calc(70% - 1.5rem); /* Lebar label yang berbeda untuk tabel ini */
+    }
+    /* Untuk tombol edit/delete agar tidak bergeser */
+    td:nth-child(5) {
+        text-align: center; /* Rata tengah untuk kolom Actions */
+    }
+    td:nth-child(5)::before {
+        display: none; /* Sembunyikan label untuk kolom actions */
+    }
+    /* Penyesuaian untuk input dan tombol */
+    input[type=text], input[type=number], select, button.primary {
+        font-size: 0.9rem;
+        padding: 0.6rem;
+    }
+    button.primary {
+        width: 100%; /* Tombol primary penuh lebar */
+    }
+    .receipt {
+        padding: 0.8rem 1rem;
+        font-size: 0.85rem;
+    }
+    .receipt .store-logo {
+        max-width: 100px;
+    }
+}
+
+/* Sangat Kecil (mis. Beberapa ponsel lama) */
+@media (max-width: 480px) {
+    header {
+        font-size: 1.1rem;
+        padding: 0.8rem;
+    }
+    nav button {
+        font-size: 0.8rem;
+        padding: 0.5rem;
+    }
+    main {
+        margin: 0.5rem;
+        padding: 0.8rem;
+    }
+    h2 {
+        font-size: 1.2rem;
+    }
+    h3 {
+        font-size: 1rem;
+    }
+    td::before {
+        font-size: 0.8rem;
+    }
+    canvas {
+        height: 250px; /* Kurangi tinggi grafik */
+    }
+}
+
+/* Penyesuaian data-label untuk tabel responsif */
+/* Penting: Ini perlu ditambahkan secara dinamis di JavaScript saat merender tabel */
+/* Contoh di JS:
+   tr.innerHTML = `
+     <td data-label="Name">${escapeHtml(p.name)}</td>
+     <td data-label="Cost (HPP)">${formatCurrency(p.cost)}</td>
+     <td data-label="Price">${formatCurrency(p.price)}</td>
+     <td data-label="Stock">${p.stock}</td>
+     <td data-label="Actions">
+       <button class="edit" aria-label="Edit ${escapeHtml(p.name)}">Edit</button>
+       <button class="delete" aria-label="Delete ${escapeHtml(p.name)}">Delete</button>
+     </td>
+   `;
+*/
