@@ -888,3 +888,28 @@ canvas:hover {
         font-size: 1.3rem;
     }
 }
+
+/* Tambahkan di bagian paling bawah file style.css Anda */
+
+footer {
+    background-color: var(--primary-dark);
+    color: var(--white);
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.9rem;
+    margin-top: 2rem; /* Memberi jarak dari konten utama */
+    box-shadow: 0 -2px 5px var(--shadow-light); /* Bayangan ke atas */
+}
+
+footer p {
+    margin: 0; /* Menghilangkan margin default dari paragraf */
+    color: var(--white); /* Memastikan teks footer tetap putih */
+}
+
+/* Penyesuaian responsif untuk footer jika diperlukan */
+@media (max-width: 768px) {
+    footer {
+        padding: 0.8rem;
+        font-size: 0.8rem;
+    }
+}
